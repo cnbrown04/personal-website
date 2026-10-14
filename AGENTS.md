@@ -16,7 +16,7 @@
   - Types: `feat`, `fix`, `refactor`, `perf`, `style`, `docs`, `test`, `build`,
     `ci`, `chore`.
   - Scopes match the area touched: `server`, `web`, `site-kit`, `scripts`,
-    `templates`, `deps`, `tooling`, or a project slug (e.g. `hello-wasm`). Omit
+    `templates`, `deps`, `tooling`, or a project slug (e.g. `model-viewer`). Omit
     the scope if the change spans many areas.
   - Breaking changes: add `!` after the type/scope (no footer).
   - If unrelated changes were made, suggest one message per logical commit and
