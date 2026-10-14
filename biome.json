@@ -1,8 +1,30 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
-  "files": { "includes": ["**", "!**/pkg", "!templates", "!web/public"] },
+  "files": { "includes": ["**", "!**/pkg", "!templates", "!web/public", "!**/vendor"] },
   "formatter": { "indentStyle": "space", "lineWidth": 100 },
   "css": { "parser": { "tailwindDirectives": true } },
-  "assist": { "actions": { "source": { "organizeImports": "on" } } }
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "overrides": [
+    {
+      "includes": ["projects/model-viewer/src/**", "projects/model-viewer/public/**"],
+      "linter": {
+        "rules": {
+          "a11y": "off",
+          "complexity": { "noImportantStyles": "off" },
+          "correctness": { "useExhaustiveDependencies": "off", "useHookAtTopLevel": "off" },
+          "style": {
+            "noNonNullAssertion": "off",
+            "noDescendingSpecificity": "off",
+            "useTemplate": "off"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "off",
+            "noConfusingVoidType": "off",
+            "useIterableCallbackReturn": "off"
+          }
+        }
+      }
+    }
+  ]
 }

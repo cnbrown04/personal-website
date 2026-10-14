@@ -25,7 +25,11 @@ depends = ["build:site", "build:server"]
 [tasks."build:site"]
 description = "Build WASM crates, the web shell and standalone apps into dist/"
 depends = ["build:wasm"]
-run = ["npm run build --workspace web", "node scripts/build-standalone.mjs"]
+run = [
+  "npm run build --workspace web",
+  "node scripts/build-standalone.mjs",
+  "node scripts/precompress.mjs",
+]
 
 [tasks."build:wasm"]
 description = "Build every projects/*/wasm crate into its pkg/ (pass --dev for debug)"

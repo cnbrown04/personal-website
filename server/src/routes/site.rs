@@ -30,6 +30,9 @@ pub fn attach(app: Router, config: &Config) -> Router {
     // share names with app routes, so they must fall through to the app.
     let files = ServeDir::new(&config.site_dir)
         .append_index_html_on_directories(false)
+        // .br/.gz siblings written at build time (scripts/precompress.mjs).
+        .precompressed_br()
+        .precompressed_gzip()
         .fallback(axum::routing::get(spa_fallback).with_state(state));
 
     let app = app

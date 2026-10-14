@@ -1,0 +1,87 @@
+[
+  {
+    "name": "Standard",
+    "description": "80 × 80 × 25 mm, 3 × 3 compartments",
+    "params": {
+      "width": 80,
+      "depth": 80,
+      "height": 25,
+      "col_splits": [0.3333, 0.6667],
+      "row_splits": [0.3333, 0.6667],
+      "cells": [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    }
+  },
+  {
+    "name": "Extra tall",
+    "description": "80 × 80 × 40 mm, 3 × 3 compartments",
+    "params": {
+      "width": 80,
+      "depth": 80,
+      "height": 40,
+      "col_splits": [0.3333, 0.6667],
+      "row_splits": [0.3333, 0.6667],
+      "cells": [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    }
+  },
+  {
+    "name": "Extra wide",
+    "description": "120 × 80 × 25 mm, 3 × 3 compartments",
+    "params": {
+      "width": 120,
+      "depth": 80,
+      "height": 25,
+      "col_splits": [0.3333, 0.6667],
+      "row_splits": [0.3333, 0.6667],
+      "cells": [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    }
+  },
+  {
+    "name": "Extra wide, extra tall",
+    "description": "120 × 80 × 40 mm, 3 × 3 compartments",
+    "params": {
+      "width": 120,
+      "depth": 80,
+      "height": 40,
+      "col_splits": [0.3333, 0.6667],
+      "row_splits": [0.3333, 0.6667],
+      "cells": [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    }
+  },
+  {
+    "name": "Small parts sorter",
+    "description": "Standard box with a 4 × 4 grid",
+    "params": {
+      "width": 80,
+      "depth": 80,
+      "height": 25,
+      "col_splits": [0.25, 0.5, 0.75],
+      "row_splits": [0.25, 0.5, 0.75],
+      "cells": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    }
+  },
+  {
+    "name": "Tool tray",
+    "description": "Extra wide with a long front bay and four small pockets",
+    "params": {
+      "width": 120,
+      "depth": 80,
+      "height": 25,
+      "col_splits": [0.25, 0.5, 0.75],
+      "row_splits": [0.45],
+      "cells": [0, 1, 2, 3, 4, 4, 4, 4]
+    }
+  },
+  {
+    "name": "Open tray",
+    "description": "Standard size, no dividers, empty lid",
+    "params": {
+      "width": 80,
+      "depth": 80,
+      "height": 25,
+      "col_splits": [],
+      "row_splits": [],
+      "cells": [0],
+      "lid_dividers": false
+    }
+  }
+]

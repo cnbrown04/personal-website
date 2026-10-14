@@ -4,7 +4,7 @@ mod routes;
 use std::net::SocketAddr;
 
 use config::Config;
-use tower_http::{compression::CompressionLayer, trace::TraceLayer};
+use tower_http::{CompressionLevel, compression::CompressionLayer, trace::TraceLayer};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -21,7 +21,8 @@ async fn main() {
     }
 
     let app = routes::router(&config)
-        .layer(CompressionLayer::new())
+        // Built assets arrive precompressed; this only covers the rest, so keep it cheap.
+        .layer(CompressionLayer::new().quality(CompressionLevel::Fastest))
         .layer(TraceLayer::new_for_http());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], config.port));

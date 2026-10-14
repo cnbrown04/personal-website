@@ -1,0 +1,7 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "resolveJsonModule": true
+  },
+  "include": ["src", "vendor/openscad/openscad.d.ts", "project.ts", "vite.config.ts"]
+}
