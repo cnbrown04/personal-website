@@ -1,0 +1,11 @@
+[workspace]
+resolver = "3"
+members = ["server", "projects/*/wasm"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+
+# Small WASM output for project crates.
+[profile.release.package."*"]
+opt-level = "s"

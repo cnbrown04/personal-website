@@ -1,0 +1,69 @@
+[tools]
+node = "24.21.0"
+rust = { version = "1.99.0", targets = "wasm32-unknown-unknown", components = "clippy,rustfmt" }
+"cargo:wasm-pack" = "0.15.0"
+
+[tasks.install]
+description = "Install npm workspace dependencies"
+run = "npm install"
+
+[tasks.dev]
+description = "Site shell with HMR on http://localhost:5173"
+depends = ["build:wasm"]
+dir = "web"
+run = "npm run dev"
+
+[tasks."dev:project"]
+description = "Run one standalone project's dev server: mise run dev:project <slug>"
+usage = 'arg "<slug>"'
+run = 'npm run dev --workspace "projects/$usage_slug"'
+
+[tasks.build]
+description = "Build everything into dist/ and the release server binary"
+depends = ["build:site", "build:server"]
+
+[tasks."build:site"]
+description = "Build WASM crates, the web shell and standalone apps into dist/"
+depends = ["build:wasm"]
+run = ["npm run build --workspace web", "node scripts/build-standalone.mjs"]
+
+[tasks."build:wasm"]
+description = "Build every projects/*/wasm crate into its pkg/ (pass --dev for debug)"
+run = "node scripts/build-wasm.mjs"
+
+[tasks."build:server"]
+description = "Build the release server binary"
+run = "cargo build --release -p server"
+
+[tasks.serve]
+description = "Serve dist/ with the Rust server on http://localhost:3000"
+run = "cargo run -p server"
+
+[tasks.new]
+description = "Scaffold a project: mise run new <slug> [--standalone] [--wasm]"
+usage = '''
+arg "<slug>"
+flag "--standalone" help="Separate Vite app at /p/<slug>/"
+flag "--wasm" help="Include a Rust crate in wasm/"
+'''
+run = '''
+node scripts/new-project.mjs "$usage_slug" \
+  ${usage_standalone:+--standalone} ${usage_wasm:+--wasm}
+'''
+
+[tasks.check]
+description = "Lint, typecheck, clippy and Rust tests"
+run = [
+  "npx biome check .",
+  "npm run typecheck --workspaces --if-present",
+  "cargo clippy --workspace --all-targets -- -D warnings",
+  "cargo test --workspace",
+]
+
+[tasks.format]
+description = "Format and autofix JS/TS/CSS and Rust"
+run = ["npx biome check --write .", "cargo fmt --all"]
+
+[tasks.clean]
+description = "Remove build output"
+run = "rm -rf dist target projects/*/wasm/pkg"

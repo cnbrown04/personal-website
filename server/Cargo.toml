@@ -1,0 +1,17 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+axum = "0.8.9"
+tokio = { version = "1.53.3", features = ["macros", "rt-multi-thread", "fs", "net", "signal"] }
+tower-http = { version = "0.7.1", features = ["fs", "compression-gzip", "compression-br", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+
+# Optional server features go here, one per module in src/routes/, e.g.:
+# [features]
+# default = ["contact"]
+# contact = ["dep:lettre"]

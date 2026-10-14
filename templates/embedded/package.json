@@ -1,0 +1,16 @@
+{
+  "name": "@project/{{slug}}",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@site/kit": "*",
+    "react": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "vite": "^8.3.4"
+  }
+}
