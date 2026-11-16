@@ -351,13 +351,6 @@ export class Viewer {
     this.ortho.updateProjectionMatrix();
   }
 
-  /** Renders the current view to a PNG data URL for screenshots. */
-  snapshot(): string {
-    if (!this.ready) throw new Error("the 3D view is still starting");
-    this.renderer.render(this.scene, this.camera);
-    return this.renderer.domElement.toDataURL("image/png");
-  }
-
   private resize = () => {
     const width = this.canvas.clientWidth || 1;
     const height = this.canvas.clientHeight || 1;

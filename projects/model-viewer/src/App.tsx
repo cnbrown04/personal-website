@@ -492,17 +492,8 @@ export default function App() {
       setExporting(format);
       try {
         // Exports always use the finest setting the user picked, never draft.
-        // The source is the same whatever the settings, so it keeps its own name.
-        const stem = schema && format !== "scad" ? exportStem(schema, params) : undefined;
-        if (format === "png") {
-          // Rendered from the live view on the GPU (OpenSCAD's PNG export needs OpenGL).
-          const viewer = viewerRef.current;
-          if (!viewer) throw new Error("the 3D view is not ready");
-          const blob = await (await fetch(viewer.snapshot())).blob();
-          api.downloadBlob(blob, `${stem ?? "clamshell"}.png`);
-        } else {
-          await api.exportModel(params, Math.max(quality, 64), format, stem);
-        }
+        const stem = schema ? exportStem(schema, params) : undefined;
+        await api.exportModel(params, Math.max(quality, 64), format, stem);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {

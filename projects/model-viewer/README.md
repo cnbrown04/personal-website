@@ -25,8 +25,8 @@ params ─▶ Rust/wasm planner ─▶ OpenSCAD (wasm) × N workers ─▶ 3MF p
   the render cache live in the visitor's IndexedDB. Nothing is sent to a server.
   Built-in presets ship in `model/clamshell.presets.json`.
 
-Changes from the server version: PNG export renders the live 3D view (OpenSCAD's
-PNG export needs OpenGL), and there's no background warm-up of presets, so the
+Changes from the server version: downloads are 3MF, STL and OBJ (no PNG, OFF,
+parameters or source), and there's no background warm-up of presets, so the
 first render of each preset takes one OpenSCAD run per part. In dev, editing
 `model/clamshell.scad` hot-reloads the model and keeps your values.
 

@@ -28,10 +28,6 @@ const EXPORTS = [
   ["stl", "STL"],
   ["3mf", "3MF (color)"],
   ["obj", "OBJ"],
-  ["off", "OFF"],
-  ["png", "PNG render"],
-  ["json", "Parameters"],
-  ["scad", "Source"],
 ] as const;
 
 // These are owned by the layout editor rather than shown as raw fields.

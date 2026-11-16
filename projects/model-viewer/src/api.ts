@@ -220,7 +220,6 @@ export async function renderModel(
 const EXPORT_FORMATS: Record<string, { flag: string; ext: string; mime: string }> = {
   "3mf": { flag: "3mf", ext: "3mf", mime: "model/3mf" },
   stl: { flag: "binstl", ext: "stl", mime: "model/stl" },
-  off: { flag: "off", ext: "off", mime: "application/octet-stream" },
   amf: { flag: "amf", ext: "amf", mime: "application/octet-stream" },
   obj: { flag: "obj", ext: "obj", mime: "application/octet-stream" },
   csg: { flag: "csg", ext: "csg", mime: "text/plain" },
@@ -237,27 +236,14 @@ export function downloadBlob(blob: Blob, name: string) {
   URL.revokeObjectURL(url);
 }
 
-/** `stem` names the file; the extension comes from the format. PNG is handled by the viewer. */
+/** `stem` names the file; the extension comes from the format. */
 export async function exportModel(
   params: Params,
   quality: number,
   format: string,
   stem?: string,
 ): Promise<void> {
-  const fmt = format.toLowerCase();
-  if (fmt === "json") {
-    const set = { parameterSets: { web: params }, fileFormatVersion: "1" };
-    downloadBlob(
-      new Blob([JSON.stringify(set, null, 2)], { type: "application/json" }),
-      `${stem ?? "parameters"}.json`,
-    );
-    return;
-  }
-  if (fmt === "scad") {
-    downloadBlob(new Blob([source], { type: "text/plain" }), MODEL_FILE);
-    return;
-  }
-  const spec = EXPORT_FORMATS[fmt];
+  const spec = EXPORT_FORMATS[format.toLowerCase()];
   if (!spec) throw new Error(`unsupported format '${format}'`);
 
   await initMesh();
