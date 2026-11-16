@@ -127,6 +127,26 @@ function snap_fit_dims(key) =
     [snap_width, snap_depth, snap_catch_depth, snap_height,
      side_snap_length, side_snap_depth, side_snap_catch_depth];
 
+/* [Easy Open] Experimental: ways to make the lid easier to open */
+// How the lid locks. "squeeze latches" swaps the front and side snaps for a press-to-release latch in a 2 mm housing on each side (the box gets 4 mm wider): squeeze the ribbed spots, then lift
+lid_lock = "snaps";     // ["snaps", "squeeze latches"]
+// Cut the front snap's catch free into two springs so it opens with much less force
+front_flex = false;
+// A thumb ledge on the lid's front edge to push the lid up with
+lift_tab = false;
+
+/* [Hidden] */
+// Squeeze latch spring length, front to back; longer = lighter squeeze (mm)
+latch_length = 20;      // [12:0.5:60]
+// How far the latch hook reaches into the lid's rim; more = firmer hold (mm)
+latch_engage = 0.6;     // [0.3:0.05:0.8]
+// Front flex spring span, side to side; longer = lighter snap (mm)
+front_flex_length = 32; // [20:1:200]
+// Lift tab width (mm)
+lift_tab_width = 20;    // [8:0.5:40]
+// How far the lift tab sticks out past the front (mm)
+lift_tab_reach = 4;     // [2:0.5:8]
+
 /* [Dividers] */
 bottom_chamfer = false;
 chamfer_size   = 2;
@@ -184,10 +204,10 @@ mv_part = "all"; // ["all", "base", "lid", "dividers", "inserts"]
 function _mv_build(part) = mv_part == "all" || mv_part == part;
 // Settings each part does not depend on (keep these conservative: a missing
 // entry only costs a re-render, a wrong one would show a stale part).
-mv_ignore_base     = ["col_splits", "row_splits", "cells", "lid_dividers", "bottom_chamfer", "chamfer_size", "divider_color", "fills", "tools", "insert_color", "snap_depth", "side_snap_catch_depth"];
-mv_ignore_lid      = ["col_splits", "row_splits", "cells", "lid_dividers", "bottom_chamfer", "chamfer_size", "divider_color", "fills", "tools", "insert_color", "label_width", "label_height", "snap_catch_depth", "side_snap_depth"];
-mv_ignore_dividers = ["footy", "label_width", "label_height", "hinge_clear", "hinge_dia", "hinge_comp_len", "fills", "tools", "insert_color", "snap_fit", "front_snap", "side_snaps", "snap_width", "snap_depth", "snap_catch_depth", "snap_height", "side_snap_length", "side_snap_depth", "side_snap_catch_depth"];
-mv_ignore_inserts  = ["footy", "label_width", "label_height", "hinge_clear", "hinge_dia", "hinge_comp_len", "lid_dividers", "bottom_chamfer", "chamfer_size", "divider_color", "snap_fit", "front_snap", "side_snaps", "snap_width", "snap_depth", "snap_catch_depth", "snap_height", "side_snap_length", "side_snap_depth", "side_snap_catch_depth"];
+mv_ignore_base     = ["col_splits", "row_splits", "cells", "lid_dividers", "bottom_chamfer", "chamfer_size", "divider_color", "fills", "tools", "insert_color", "snap_depth", "side_snap_catch_depth", "lift_tab_width", "lift_tab_reach"];
+mv_ignore_lid      = ["col_splits", "row_splits", "cells", "lid_dividers", "bottom_chamfer", "chamfer_size", "divider_color", "fills", "tools", "insert_color", "label_width", "label_height", "snap_catch_depth", "side_snap_depth", "front_flex", "front_flex_length", "latch_engage"];
+mv_ignore_dividers = ["footy", "label_width", "label_height", "hinge_clear", "hinge_dia", "hinge_comp_len", "fills", "tools", "insert_color", "snap_fit", "front_snap", "side_snaps", "snap_width", "snap_depth", "snap_catch_depth", "snap_height", "side_snap_length", "side_snap_depth", "side_snap_catch_depth", "lid_lock", "front_flex", "lift_tab", "latch_length", "latch_engage", "front_flex_length", "lift_tab_width", "lift_tab_reach"];
+mv_ignore_inserts  = ["footy", "label_width", "label_height", "hinge_clear", "hinge_dia", "hinge_comp_len", "lid_dividers", "bottom_chamfer", "chamfer_size", "divider_color", "snap_fit", "front_snap", "side_snaps", "snap_width", "snap_depth", "snap_catch_depth", "snap_height", "side_snap_length", "side_snap_depth", "side_snap_catch_depth", "lid_lock", "front_flex", "lift_tab", "latch_length", "latch_engage", "front_flex_length", "lift_tab_width", "lift_tab_reach"];
 
 insert_color = "#8A96A8";
 
@@ -231,6 +251,66 @@ _side_snap_d    = _snap[5];
 _side_snap_c    = _snap[6];
 _side_snap_zh   = 1.6;               // ridge height at its root
 _side_snap_z    = box_h - 6.5;       // ridge centre in the base; groove centre in the lid is at z = 6.5
+
+// --- Easy-open params
+// Closed, a lid point at height z sits at box_h - z in the base's frame, at the same y.
+// Both springs are strips cut free by a slot underneath. Neither takes room from
+// the compartments or opens into them: the squeeze latches live in a housing on
+// the outside of the side walls, and the front springs sit above the compartments'
+// top edge.
+_latch_l        = min(latch_length, box_d - 20);  // must stay on the flat of the side
+_latch_ok       = _latch_l >= 12;                 // any shorter is too stiff to squeeze
+_latches        = lid_lock == "squeeze latches" && _latch_ok;
+// The squeeze latches replace both snaps
+_front_snap     = front_snap && !_latches;
+_side_snaps     = side_snaps && !_latches;
+// Each front spring's length; the roots must stay under the full height of the front tab
+_flex_half      = min(front_flex_length/2, box_w/2 - 17);
+_flex_ok        = _flex_half >= 10;
+_front_flex     = front_flex && _front_snap && _flex_ok;
+_slot           = 0.6;               // spring slot width
+_latch_y        = 0.5;               // spring centre; the root is at the back, the free end at the front
+_latch_y0       = _latch_y - _latch_l/2;
+_latch_y1       = _latch_y + _latch_l/2;
+_latch_hook_l   = min(10, _latch_l/2);
+_latch_zb       = box_h - 6.9;       // underside of the hook
+_latch_hh       = 1.6;               // hook height
+_latch_out      = 2;                 // how far the housing stands proud of the side
+// How far the latch can be pushed in before it bottoms out on the wall: enough to
+// let go, no more. It's recessed into the outside of the wall, which keeps the rest.
+_latch_gap      = latch_engage + 0.4;
+_latch_z        = max(base_lip_bot_h - 7, 2.5);  // bottom of the slot under the latch spring
+// Housing ends, front to back, on the base and the lid
+_house_y0       = _latch_y0 - 2;
+_house_y1       = _latch_y1 + _slot + 2;
+
+// What the web viewer should grey out or warn about, as [param, "off" | "note", why].
+// Reported with the base, so everything read here must stay out of mv_ignore_base.
+function _custom_snap_hint(used, what) =
+    snap_fit != "custom" ? "Only used when snap_fit is custom" :
+    !used ? str("The ", what, " is not in use") : "";
+_hints = [
+    if (lid_lock == "squeeze latches" && !_latch_ok)
+        ["lid_lock", "note", "The box is too short front to back for squeeze latches, so it uses the snaps"],
+    if (_latches) ["front_snap", "off", "Replaced by the squeeze latches"],
+    if (_latches) ["side_snaps", "off", "Replaced by the squeeze latches"],
+    if (!_front_snap && !_side_snaps) ["snap_fit", "off", "No snaps are in use"],
+    if (!(_front_snap && _flex_ok))
+        ["front_flex", "off",
+         _latches     ? "Squeeze latches replace the front snap" :
+         !front_snap  ? "Needs the front snap" :
+                        "The box is too narrow for the front springs"],
+    if (!_latches) ["latch_length", "off", "Only used by squeeze latches"],
+    if (!_latches) ["latch_engage", "off", "Only used by squeeze latches"],
+    if (!_front_flex) ["front_flex_length", "off", "Only used by front flex"],
+    if (!lift_tab) ["lift_tab_width", "off", "Only used by the lift tab"],
+    if (!lift_tab) ["lift_tab_reach", "off", "Only used by the lift tab"],
+    for (n = ["snap_width", "snap_depth", "snap_catch_depth", "snap_height"])
+        let (why = _custom_snap_hint(_front_snap, "front snap")) if (why != "") [n, "off", why],
+    for (n = ["side_snap_length", "side_snap_depth", "side_snap_catch_depth"])
+        let (why = _custom_snap_hint(_side_snaps, "side snap")) if (why != "") [n, "off", why],
+];
+if (_mv_build("base")) echo(str("MV_HINTS=", _hints));
 
 // --- Divider params
 div_t           = 1;
@@ -335,10 +415,13 @@ echo(str("MV_LAYOUT=",
 // ----------------------
 module generate_base(base_w, base_d, base_h, base_t) {
     difference() {
-        generate_base_shell(base_w, base_d, base_h, base_lip_top_h, base_lip_bot_h, base_t);
+        union() {
+            generate_base_shell(base_w, base_d, base_h, base_lip_top_h, base_lip_bot_h, base_t);
+            if (_latches) _both_sides() _latch_housing();
+        }
 
         // interior latch
-        if (front_snap)
+        if (_front_snap)
         translate([0, base_d/2-base_t, box_h-3.5])
             _prismoid([_snap_w, _snap_h-0.2], [_snap_w, 0.6], _snap_catch, orient="back");
 
@@ -353,14 +436,19 @@ module generate_base(base_w, base_d, base_h, base_t) {
         // hinge clearance cuts
         translate([-base_w/2, -base_d/2-.5, box_h/2-.1])
             generate_hinge_components(true, true);
+
+        if (_latches) _both_sides() _latch_cuts();
+        if (_front_flex) _flex_cuts(base_d);
     }
 
     // hinge components
     translate([-base_w/2, -base_d/2-.5, box_h/2])
         generate_hinge_components(true, false);
 
+    if (_latches) _both_sides() { _latch_hook(); _latch_ribs(); }
+
     // side snap ridges on the outside of the lip
-    if (side_snaps)
+    if (_side_snaps)
     for (sx = [-1, 1])
         translate([sx*(base_w/2 - 1.2), 0.5, _side_snap_z])
             _prismoid([_side_snap_zh, _side_snap_l], [0.6, _side_snap_l - 1], 0.3 + _side_snap_d,
@@ -369,7 +457,10 @@ module generate_base(base_w, base_d, base_h, base_t) {
 
 module generate_lid(lid_w, lid_outer_d, lid_h, lid_side_t, lid_fb_t) {
     difference() {
-        generate_lid_shell(lid_w, lid_outer_d, lid_h, lid_lip_bot_h, lid_lip_top_h, lid_side_t, lid_fb_t);
+        union() {
+            generate_lid_shell(lid_w, lid_outer_d, lid_h, lid_lip_bot_h, lid_lip_top_h, lid_side_t, lid_fb_t);
+            if (_latches) _both_sides() _latch_lid_housing();
+        }
 
         if(footy){
         // footy pockets (offset minkowski)
@@ -387,19 +478,25 @@ module generate_lid(lid_w, lid_outer_d, lid_h, lid_side_t, lid_fb_t) {
 
         // side snap grooves inside the rim (the lid flips over the hinge, so they
         // line up with the base's ridges at the same y)
-        if (side_snaps)
+        if (_side_snaps)
         for (sx = [-1, 1])
             translate([sx*(lid_w/2 - 1), 0.5, 6.5])
                 _prismoid([_side_snap_zh + 0.2, _side_snap_l + 1], [0.8, _side_snap_l], 0.1 + _side_snap_c,
                           orient=(sx == 1 ? "right" : "left"));
+
+        // windows in the rim for the squeeze latches' hooks
+        if (_latches) _both_sides() _latch_lid_cuts();
     }
+
 
     // hinge components
     translate([-base_w/2, -base_d/2+.75, box_h/2])
         generate_hinge_components(false, false);
 
+    if (lift_tab) _lift_tab(lid_outer_d);
+
     // external latch
-    if (front_snap)
+    if (_front_snap)
     difference() {
         translate([0, lid_outer_d/2-2.1, 3.5])
             _prismoid([_snap_w+0.4, _snap_h], [_snap_w-1.2, 0.6], _snap_depth, orient="back");
@@ -439,8 +536,10 @@ module generate_base_shell(l,w,h,inner_h,outer_h,t) {
 
     // grips (two per side) — base uses 0.95 gap
     y_grip = w/2 - 16;
-    _grip_pair_on_side(+1, l, y_grip, 2.95, 0.95);
-    _grip_pair_on_side(-1, l, y_grip, 2.95, 0.95);
+    if (_grips_clear(y_grip)) {
+        _grip_pair_on_side(+1, l, y_grip, 2.95, 0.95);
+        _grip_pair_on_side(-1, l, y_grip, 2.95, 0.95);
+    }
 
     if(footy){
     // back feet (base uses 16.82843 offset)
@@ -501,14 +600,151 @@ module generate_lid_shell(l,w,h,inner_h,outer_h,side_t, fb_t) {
 
     // grips (two per side) — lid uses 1.0 gap
     y_grip = w/2 - 16;
-    _grip_pair_on_side(+1, l, y_grip, 2.95, 1.0);
-    _grip_pair_on_side(-1, l, y_grip, 2.95, 1.0);
+    if (_grips_clear(y_grip)) {
+        _grip_pair_on_side(+1, l, y_grip, 2.95, 1.0);
+        _grip_pair_on_side(-1, l, y_grip, 2.95, 1.0);
+    }
 
     if(footy){
     // back feet (lid uses 5.82843 offset)
     translate([ base_w/2 - 5.82843 - 5, -w/2, 0]) generate_footy();
     translate([-base_w/2 + 5.82843 + 5, -w/2, 0]) generate_footy();
     }
+}
+
+// ----------------------
+// Easy open (experimental)
+// ----------------------
+// The latch modules draw the +x side; _both_sides() mirrors them onto -x.
+module _both_sides() {
+    children();
+    mirror([1, 0, 0]) children();
+}
+
+// Side grips would run into a latch housing on short boxes, so they give way.
+function _grips_clear(y_grip) =
+    !_latches || y_grip + 5 < _house_y0 || y_grip - 5 > _house_y1;
+
+// Extrude an (x, z) profile along y, centred on y.
+module _along_y(y, len) {
+    translate([0, y, 0]) rotate([90, 0, 0]) linear_extrude(len, center = true) children();
+}
+
+// Extrude a (y, z) profile along x, centred on x = 0.
+module _along_x(len) {
+    rotate([90, 0, 90]) linear_extrude(len, center = true) children();
+}
+
+// Squeeze latch. A housing on the outside of the side wall carries a leaf spring:
+// a strip cut free by a slot underneath and a slot at its free end, so it bends
+// sideways along its length rather than from the floor, which keeps the strain on
+// its root low. The root is towards the hinge; the free end, with the ribs to press,
+// is towards the front. Above the base's rim the spring carries the hook, which
+// clicks into a window in a matching housing on the lid. Behind the spring the
+// wall is recessed just enough for the hook to let go, and the 1 mm or so of wall
+// left behind it keeps the compartment closed. Nothing changes on the inside.
+// The rounded root end keeps cracks from starting, and the slot under the spring
+// runs at 45° so its underside prints without support.
+_latch_s = _slot * sqrt(2);   // a 45° slot's height
+
+module _latch_housing() {
+    xo = base_w/2; P = _latch_out;
+    // below the rim: the spring plus a fixed foot under it, with a 45° underside
+    _along_y((_house_y0 + _house_y1)/2, _house_y1 - _house_y0)
+        polygon([[xo - 0.01, _latch_z - 1.5], [xo + P, _latch_z - 1.5 + P],
+                 [xo + P, base_lip_bot_h], [xo - 0.01, base_lip_bot_h]]);
+    // above the rim: the spring's head, which carries the hook
+    _along_y((_latch_y0 + _latch_y1)/2, _latch_y1 - _latch_y0)
+        polygon([[xo, base_lip_bot_h - 0.01], [xo + 0.9, base_lip_bot_h - 0.01],
+                 [xo + 0.9, base_lip_top_h], [xo, base_lip_top_h]]);
+}
+
+module _latch_cuts() {
+    xo = base_w/2; z = _latch_z;
+    // the recess the spring is pushed into
+    translate([xo - _latch_gap, _latch_y0, z]) cube([_latch_gap, _latch_y1 + _slot - _latch_y0, box_h]);
+    // under the spring, rising outwards so it only opens up when pressed in
+    _along_y((_latch_y0 + _latch_y1 + _slot)/2, _latch_y1 + _slot - _latch_y0)
+        polygon([[xo - 0.5, z - 0.5], [xo + 3, z + 3], [xo + 3, z + 3 + _latch_s], [xo - 0.5, z - 0.5 + _latch_s]]);
+    // the free end
+    translate([xo - _latch_gap, _latch_y1, z - 1]) cube([_latch_gap + 3, _slot, box_h]);
+    // rounded root
+    translate([xo + 0.75, _latch_y0, z + 0.75 + _latch_s/2]) rotate([0, 45, 0])
+        cylinder(d = 2*_slot, h = 4.8, center = true, $fn = 16);
+}
+
+// The hook sits on the head's outer face. Only the part of its underside that
+// meets the lid's bar is nearly flat (10°, rising to the tip): flat enough to hold
+// against a tug, steep enough that a hard pull cams it in rather than snapping the
+// bar. The rest, inside the 0.2 mm gap, is 45°, so the ledge printed over air is
+// only about 0.6 mm.
+module _latch_hook() {
+    x0 = base_w/2 + 0.9;
+    p  = 0.2 + latch_engage;
+    zf = _latch_zb - (p - 0.2) * tan(10);   // where the flat part starts, above the bar's inner edge
+    _along_y(_latch_y1 - 1 - _latch_hook_l/2, _latch_hook_l)
+        polygon([[x0 - 0.3, zf - 0.5], [x0 + 0.2, zf], [x0 + p, _latch_zb], [x0 + p, _latch_zb + 0.3],
+                 [x0 - 0.3, _latch_zb + _latch_hh]]);
+}
+
+// Upright ribs on the free end that show where to press.
+module _latch_ribs() {
+    z0 = _latch_z + _latch_out + _latch_s + 0.4;   // above the slot on the outside
+    z1 = base_lip_bot_h - 0.4;
+    if (z1 - z0 > 1.5)
+        for (k = [0:2])
+            translate([base_w/2 + _latch_out, _latch_y1 - 1.5 - 2*k, (z0 + z1)/2])
+                _prismoid([z1 - z0, 1], [z1 - z0 - 1, 0.4], 0.5, orient = "right");  // 45° ends
+}
+
+// Lid side (lid frame, where a lid point at height z closes onto box_h - z): the
+// housing continues up the lid as a skirt 0.2 mm outside the head, on a 45° shelf.
+module _latch_lid_housing() {
+    xo = lid_w/2; P = _latch_out;
+    _along_y((_house_y0 + _house_y1)/2, _house_y1 - _house_y0)
+        polygon([[xo - 0.01, lid_h - 3 - P], [xo + P, lid_h - 3],
+                 [xo + P, lid_h], [xo + 1.1, lid_h], [xo + 1.1, lid_h - 3],
+                 [xo - 0.01, lid_h - 3]]);
+}
+
+module _latch_lid_cuts() {
+    xo = lid_w/2;
+    // the lid's own rim gives way to the head where it is pressed in
+    translate([xo - 1, _latch_y0 - 0.5, lid_h - 3])
+        cube([1.01, _latch_y1 + _slot + 1 - _latch_y0, 4]);
+    // the window for the hook, through the skirt
+    l  = _latch_hook_l + 0.6;
+    z0 = box_h - _latch_zb - _latch_hh - 0.2;
+    z1 = box_h - _latch_zb + 0.25;   // clear of the hook's underside where it meets the bar
+    translate([xo + 0.9, _latch_y1 - 1 - _latch_hook_l/2 - l/2, z0]) cube([_latch_out, l, z1 - z0]);
+}
+
+// Front flex (base). The front snap's catch sits in the front tab above the
+// compartments' top edge, so only that part is cut free: a slot underneath at
+// the top edge, and a split in the middle, leave the catch on the free ends of
+// two springs rooted out towards the corners. The slot rises inwards (the lid
+// only pushes the springs outwards) and opens on the inside just above the top
+// edge, so it doesn't open into the compartments.
+module _flex_cuts(d) {
+    yo = d/2; yi = d/2 - 2;
+    z  = base_lip_top_h + 0.45 - 2;  // slot bottom at the outside; 2 mm higher on the inside
+    _along_x(2*_flex_half)
+        polygon([[yo + 1, z - 1], [yi - 1, z + 3], [yi - 1, z + 3 + _latch_s], [yo + 1, z - 1 + _latch_s]]);
+    // the split, only above the slot
+    translate([-_slot/2, 0, 0]) rotate([90, 0, 90]) linear_extrude(_slot)
+        polygon([[yo + 1, z - 1], [yi - 1, z + 3], [yi - 1, box_h + 1], [yo + 1, box_h + 1]]);
+    // rounded roots
+    for (sx = [-1, 1])
+        translate([sx*_flex_half, yo - 1, z + 1 + _latch_s/2]) rotate([45, 0, 0])
+            cylinder(d = 2*_slot, h = 4.2, center = true, $fn = 16);
+}
+
+// Lift tab: a flat ledge on the lid's front edge. It prints on the bed and, when
+// closed, overhangs the front at the very top for a thumb to push up.
+module _lift_tab(d) {
+    tw = min(lift_tab_width, box_w - 20);
+    translate([0, d/2 - 3, 0]) linear_extrude(1.6)
+        offset(r = 1.5) offset(delta = -1.5) translate([-tw/2, 0]) square([tw, 3 + lift_tab_reach]);
 }
 
 // ----------------------

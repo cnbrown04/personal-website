@@ -1,17 +1,20 @@
+import type { ParamHint } from "../hints";
 import type { Param, ParamValue } from "../types";
 
 interface Props {
   param: Param;
   value: ParamValue;
+  hint?: ParamHint;
   onChange: (value: ParamValue) => void;
   onReset: () => void;
 }
 
-export function Control({ param, value, onChange, onReset }: Props) {
+export function Control({ param, value, hint, onChange, onReset }: Props) {
   const modified = JSON.stringify(value) !== JSON.stringify(param.default);
+  const off = hint?.off ?? false;
 
   return (
-    <div className={`control ${modified ? "modified" : ""}`}>
+    <div className={`control ${modified ? "modified" : ""} ${off ? "inactive" : ""}`}>
       <div className="control-head">
         <label htmlFor={`p-${param.name}`} title={`line ${param.line}`}>
           {param.name}
@@ -23,7 +26,11 @@ export function Control({ param, value, onChange, onReset }: Props) {
         )}
       </div>
       {param.description && <p className="desc">{param.description}</p>}
-      <Widget param={param} value={value} onChange={onChange} />
+      {hint && <p className={off ? "hint" : "hint note"}>{hint.reason}</p>}
+      {/* A disabled fieldset disables every input inside it. */}
+      <fieldset className="widget" disabled={off}>
+        <Widget param={param} value={value} onChange={onChange} />
+      </fieldset>
     </div>
   );
 }

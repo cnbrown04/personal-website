@@ -564,5 +564,15 @@ mod file_tests {
         assert!(by("base_h").is_none());
         assert!(by("dims").is_none());
         assert!(by("_cells").is_none());
+
+        // Easy-open options: basic toggles, tuning under Advanced, and the
+        // multi-line hint list must not leak knobs.
+        assert_eq!(by("lid_lock").unwrap().options.len(), 2);
+        assert!(!by("front_flex").unwrap().hidden);
+        assert!(!by("lift_tab").unwrap().hidden);
+        assert!(by("latch_length").unwrap().hidden);
+        for derived in ["_hints", "why", "_latches", "_latch_s"] {
+            assert!(by(derived).is_none(), "{derived} became a knob");
+        }
     }
 }

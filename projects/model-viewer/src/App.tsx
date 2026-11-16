@@ -5,6 +5,7 @@ import { Panel } from "./components/Panel";
 import { PresetManager } from "./components/PresetManager";
 import { StatusBar } from "./components/StatusBar";
 import { CompartmentsSection, ViewportEditor } from "./components/ViewportEditor";
+import { type ParamHints, parseHints } from "./hints";
 import { fillsFromParams, supportsInserts, type ToolMesh } from "./layout/inserts";
 import * as L from "./layout/model";
 import type { EditPatch } from "./layout/useLayoutHistory";
@@ -76,6 +77,7 @@ export default function App() {
   const [exporting, setExporting] = useState<string | null>(null);
   const [reloaded, setReloaded] = useState(0);
   const [frame, setFrame] = useState<LayoutFrame | null>(null);
+  const [hints, setHints] = useState<ParamHints>({});
   const [renderedParams, setRenderedParams] = useState<Params | null>(null);
   const [toolMode, setToolMode] = useState<ToolMode>("select");
   const [snap, setSnap] = useState(1);
@@ -216,6 +218,7 @@ export default function App() {
           const bbox = data.bbox;
           setError(null);
           setFrame(parseLayoutFrame(result.log));
+          setHints(parseHints(result.log));
           setRenderedParams(requested);
           setStats({
             renderMs: result.renderMs,
@@ -520,6 +523,7 @@ export default function App() {
         <Panel
           schema={schema}
           params={params}
+          hints={hints}
           onChange={patch}
           onResetAll={resetAll}
           onUndo={paramHistory.undo}

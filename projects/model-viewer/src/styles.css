@@ -196,6 +196,28 @@ input[type="checkbox"] {
   margin: 2px 0 4px;
   font-size: 11px;
 }
+.control fieldset.widget {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+/* Overridden by another setting: still readable, clearly not in play. */
+.control.inactive label,
+.control.inactive .desc,
+.control.inactive fieldset.widget {
+  opacity: 0.45;
+}
+.hint {
+  margin: 2px 0 4px;
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+}
+.hint.note {
+  color: var(--warn);
+  font-style: normal;
+}
 .dimmed {
   opacity: 0.4;
 }

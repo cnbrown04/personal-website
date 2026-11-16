@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { ParamHints } from "../hints";
 import { LAYOUT_PARAMS } from "../layout/model";
 import type { Params, Schema } from "../types";
 import { Control } from "./Control";
@@ -6,6 +7,8 @@ import { Control } from "./Control";
 interface Props {
   schema: Schema;
   params: Params;
+  /** Controls the model says are overridden (shown disabled) or need a warning. */
+  hints?: ParamHints;
   onChange: (patch: Params) => void;
   onResetAll: () => void;
   onUndo: () => void;
@@ -37,6 +40,7 @@ const EDITOR_OWNED = new Set<string>([...LAYOUT_PARAMS, "lid_dividers", "fills",
 export function Panel({
   schema,
   params,
+  hints,
   onChange,
   onResetAll,
   onUndo,
@@ -169,6 +173,7 @@ export function Panel({
                     key={p.name}
                     param={p}
                     value={params[p.name] ?? p.default}
+                    hint={hints?.[p.name]}
                     onChange={(v) => onChange({ [p.name]: v })}
                     onReset={() => onChange({ [p.name]: p.default })}
                   />
