@@ -56,13 +56,19 @@ node scripts/new-project.mjs "$usage_slug" \
 '''
 
 [tasks.check]
-description = "Lint, typecheck, clippy and Rust tests"
+description = "Lint, typecheck, clippy, Rust tests and the STEP rebuild check"
 run = [
   "npx biome check .",
   "npm run typecheck --workspaces --if-present",
   "cargo clippy --workspace --all-targets -- -D warnings",
   "cargo test --workspace",
+  { task = "check:step" },
 ]
+
+[tasks."check:step"]
+description = "Check the model viewer's STEP rebuild still matches clamshell.scad"
+dir = "projects/model-viewer"
+run = "node scripts/check-step.mjs"
 
 [tasks.format]
 description = "Format and autofix JS/TS/CSS and Rust"

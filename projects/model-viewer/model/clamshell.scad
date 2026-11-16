@@ -409,6 +409,38 @@ echo(str("MV_LAYOUT=",
     -lid_w/2 + lid_side_t, ",", -lid_outer_d + 2.5, ",", shell_bottom_t - .1, ",",
     div_t, ",", divider_color, ",", insert_color));
 
+// The web viewer's STEP export rebuilds this model with exact curves in
+// OpenCascade (src/step/clamshell.ts). It asks for these resolved sizes with
+// mv_part = "dims" rather than recomputing them, so the two can't disagree on
+// numbers; the construction itself is mirrored there module by module.
+if (mv_part == "dims") echo(str("MV_DIMS=", [
+    ["box_w", box_w], ["box_d", box_d], ["box_h", box_h],
+    ["label_w", label_w], ["label_h", label_h], ["label_h_loc", label_h_loc], ["footy", footy],
+    ["base_w", base_w], ["base_d", base_d], ["base_h", base_h], ["base_outer_d", base_outer_d], ["base_t", base_t],
+    ["base_lip_top_h", base_lip_top_h], ["base_lip_bot_h", base_lip_bot_h],
+    ["lid_w", lid_w], ["lid_h", lid_h], ["lid_outer_d", lid_outer_d], ["lid_side_t", lid_side_t], ["lid_fb_t", lid_fb_t],
+    ["lid_lip_bot_h", lid_lip_bot_h], ["lid_lip_top_h", lid_lip_top_h],
+    ["hinge_clear", hinge_clear], ["hinge_dia", hinge_dia], ["hinge_axis_len", hinge_axis_len], ["hinge_comp_len", hinge_comp_len],
+    ["front_snap", _front_snap], ["side_snaps", _side_snaps],
+    ["snap_w", _snap_w], ["snap_depth", _snap_depth], ["snap_catch", _snap_catch], ["snap_h", _snap_h],
+    ["side_snap_l", _side_snap_l], ["side_snap_d", _side_snap_d], ["side_snap_c", _side_snap_c],
+    ["side_snap_zh", _side_snap_zh], ["side_snap_z", _side_snap_z],
+    ["grips", _grips_clear(base_outer_d/2 - 16)],
+    ["latches", _latches], ["latch_engage", latch_engage], ["slot", _slot],
+    ["latch_y0", _latch_y0], ["latch_y1", _latch_y1], ["latch_hook_l", _latch_hook_l],
+    ["latch_zb", _latch_zb], ["latch_hh", _latch_hh], ["latch_out", _latch_out], ["latch_gap", _latch_gap],
+    ["latch_z", _latch_z], ["house_y0", _house_y0], ["house_y1", _house_y1],
+    ["front_flex", _front_flex], ["flex_half", _flex_half],
+    ["lift_tab", lift_tab], ["lift_tab_width", lift_tab_width], ["lift_tab_reach", lift_tab_reach],
+    ["div_t", div_t], ["shell_bottom_t", shell_bottom_t],
+    ["box_internal_w", box_internal_w], ["box_internal_d", box_internal_d], ["box_internal_h", box_internal_h],
+    ["lid_internal_d", lid_internal_d], ["lid_internal_h", lid_internal_h],
+    ["xs", _xs], ["ys", _ys], ["cells", _cells], ["lid_ys", _lid_ys], ["lid_cells", _lid_cells],
+    ["lid_dividers", lid_dividers], ["bottom_chamfer", bottom_chamfer], ["chamfer_size", chamfer_size],
+    ["divider_color", divider_color], ["insert_color", insert_color],
+    ["fills", fills], ["tools", len(tools)],
+]));
+
 
 // ----------------------
 // Base & Lid top-level

@@ -18,6 +18,8 @@ import {
 import { idb, safely } from "./engine/idb";
 import { runOpenSCAD } from "./engine/pool";
 import { initMesh } from "./mesh";
+import { type Dims, parseDims } from "./step/clamshell";
+import type { StepRequest, StepResult } from "./step/step.worker";
 import type { Params, Preset, Schema } from "./types";
 
 const MODEL_FILE = "clamshell.scad";
@@ -243,6 +245,11 @@ export async function exportModel(
   format: string,
   stem?: string,
 ): Promise<void> {
+  if (format.toLowerCase() === "step") {
+    const bytes = await exportStep(params);
+    downloadBlob(new Blob([bytes], { type: "model/step" }), `${stem ?? "clamshell"}.step`);
+    return;
+  }
   const spec = EXPORT_FORMATS[format.toLowerCase()];
   if (!spec) throw new Error(`unsupported format '${format}'`);
 
@@ -254,6 +261,56 @@ export async function exportModel(
   if (run.error || run.code !== 0 || !run.bytes) throw renderFailure(run.code, run.log, run.error);
   const bytes = run.bytes.slice();
   downloadBlob(new Blob([bytes.buffer], { type: spec.mime }), `${stem ?? "clamshell"}.${spec.ext}`);
+}
+
+// ---------------------------------------------------------------- STEP
+
+// OpenSCAD only makes meshes, so STEP comes from a rebuild of the model in
+// OpenCascade (src/step/clamshell.ts) with exact curves. OpenSCAD still resolves
+// every size: run with mv_part = "dims", the model reports them instead of
+// building anything.
+let stepWorker: Worker | null = null;
+let stepId = 0;
+const stepPending = new Map<
+  number,
+  { resolve: (b: ArrayBuffer) => void; reject: (e: Error) => void }
+>();
+
+function stepRunner(): Worker {
+  if (stepWorker) return stepWorker;
+  const worker = new Worker(new URL("./step/step.worker.ts", import.meta.url), { type: "module" });
+  worker.onmessage = (e: MessageEvent<StepResult>) => {
+    const job = stepPending.get(e.data.id);
+    if (!job) return;
+    stepPending.delete(e.data.id);
+    if (e.data.ok) job.resolve(e.data.bytes);
+    else job.reject(new Error(`STEP export failed: ${e.data.error}`));
+  };
+  worker.onerror = (e) => {
+    for (const job of stepPending.values())
+      job.reject(new Error(`STEP export failed: ${e.message}`));
+    stepPending.clear();
+    stepWorker = null;
+  };
+  stepWorker = worker;
+  return worker;
+}
+
+async function exportStep(params: Params): Promise<ArrayBuffer> {
+  const args = [...export_args(JSON.stringify(params), undefined), "-D", 'mv_part="dims"'];
+  // Nothing is built, so OpenSCAD ends with "top level object is empty": only the log matters.
+  const run = await runOpenSCAD({ source, args, files: [], format: "binstl", extension: "stl" });
+  let dims: Dims;
+  try {
+    dims = parseDims(run.log.join("\n"));
+  } catch {
+    throw renderFailure(run.code, run.log, run.error);
+  }
+  const id = ++stepId;
+  return new Promise((resolve, reject) => {
+    stepPending.set(id, { resolve, reject });
+    stepRunner().postMessage({ id, dims } satisfies StepRequest);
+  });
 }
 
 // ---------------------------------------------------------------- uploads

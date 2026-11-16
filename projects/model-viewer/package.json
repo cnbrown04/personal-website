@@ -11,6 +11,8 @@
     "@site/kit": "*",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "replicad": "1.1.0",
+    "replicad-opencascadejs": "1.1.0",
     "three": "^0.186.1"
   },
   "devDependencies": {
