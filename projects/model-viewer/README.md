@@ -41,11 +41,14 @@ editing `model/clamshell.scad` hot-reloads the model and keeps your values.
 
 ## Credits and licenses
 
-`model/clamshell.scad` is a changed version of the *Fully Configurable
-Clamshell Box* by Melonee Wise (MakerWorld
+`model/clamshell.scad` is a changed version of the
+[Fully Configurable Clamshell Parts Box](https://makerworld.com/en/models/1478765-fully-configurable-clamshell-parts-box)
+by Melonee Wise (MakerWorld
 [@chateauhouseyho](https://makerworld.com/en/@chateauhouseyho)), a remix of the
-[Clamshell Parts Box](https://makerworld.com/en/models/786443-clamshell-parts-box).
-The model keeps its original copyright and license. Some shapes come from
+[Clamshell Parts Box](https://makerworld.com/en/models/786443-clamshell-parts-box)
+by Nick Johnson. Both are licensed
+[CC BY-SA](https://creativecommons.org/licenses/by-sa/4.0/), so this changed
+version is too, and keeps the original copyright notice. Some shapes come from
 [BOSL2](https://github.com/BelfrySCAD/BOSL2) (BSD 2-Clause).
 
 OpenSCAD is GPL-2.0-or-later; see `vendor/openscad/README.md` for the exact
