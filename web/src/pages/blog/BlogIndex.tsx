@@ -8,6 +8,8 @@ export function BlogIndex() {
     <PageShell back={{ to: "/", label: "Home" }}>
       <h1 className="text-foreground mb-8 text-2xl font-semibold">Blog</h1>
 
+      {posts.length === 0 && <p className="text-muted-foreground text-sm">No posts yet.</p>}
+
       <ul className="flex flex-col gap-6">
         {posts.map((post) => (
           <li key={post.slug}>

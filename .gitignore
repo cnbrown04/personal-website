@@ -5,3 +5,12 @@ pkg/
 *.log
 .env
 .DS_Store
+.env.*
+!.env.example
+mise.local.toml
+.claude/settings.local.json
+
+# Old projects kept locally for reference; not published
+examples/
+# Unpublished posts
+drafts/
