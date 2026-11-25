@@ -13,7 +13,7 @@
 //
 // No relative imports, so `node` can load this file directly for the check.
 
-import type { Shape3D } from "replicad";
+import type { Shape3D, Sketch } from "replicad";
 import {
   assembleWire,
   drawRoundedRectangle,
@@ -54,6 +54,7 @@ export interface Dims {
   front_snap: boolean;
   side_snaps: boolean;
   snap_w: number;
+  snap_xs: number[];
   snap_depth: number;
   snap_catch: number;
   snap_h: number;
@@ -62,25 +63,11 @@ export interface Dims {
   side_snap_c: number;
   side_snap_zh: number;
   side_snap_z: number;
-  grips: boolean;
-  latches: boolean;
-  latch_engage: number;
-  slot: number;
-  latch_y0: number;
-  latch_y1: number;
-  latch_hook_l: number;
-  latch_zb: number;
-  latch_hh: number;
-  latch_out: number;
-  latch_gap: number;
-  latch_z: number;
-  house_y0: number;
-  house_y1: number;
-  front_flex: boolean;
-  flex_half: number;
-  lift_tab: boolean;
-  lift_tab_width: number;
-  lift_tab_reach: number;
+  pry: boolean;
+  notch_h: number;
+  notch_c: number;
+  notch_b: number;
+  notch_r: number;
   div_t: number;
   shell_bottom_t: number;
   box_internal_w: number;
@@ -101,6 +88,33 @@ export interface Dims {
   fills: [number, number, number][];
   /** how many imported tool meshes there are */
   tools: number;
+  /** finger scoops: [x0, x1, y, radius] in the base divider grid */
+  scoops: number[][];
+  /** the Gridfinity bin (generate_gridfinity) */
+  gridfinity: boolean;
+  gf_x: number;
+  gf_y: number;
+  gf_w: number;
+  gf_d: number;
+  gf_r: number;
+  gf_floor: number;
+  gf_h: number;
+  gf_c: number;
+  gf_pw: number;
+  gf_ph: number;
+  gf_pk: number;
+  gf_recess: number;
+  /** [u0, u1, v0, v1] in a pocket's frame */
+  gf_recesses: number[][];
+  gf_turn: boolean;
+  /** pocket centres */
+  gf_pockets: number[][];
+  gf_magnets: boolean;
+  gf_at: number;
+  gf_mag_r: number;
+  gf_mag_h: number;
+  gf_mag_ribs: boolean;
+  gf_rib_r: number;
 }
 
 /** Reads the dims from an OpenSCAD log run with `mv_part = "dims"`. */
@@ -116,6 +130,7 @@ export interface Parts {
   lid: Shape3D;
   dividers: Shape3D | null;
   inserts: Shape3D | null;
+  gridfinity: Shape3D | null;
 }
 
 // ---------------------------------------------------------------- prims
@@ -125,8 +140,9 @@ type V2 = [number, number];
 
 type Prim =
   | { kind: "poly"; pts: V3[]; faces: number[][] }
-  /** a cylinder or cone: base centre p, unit axis d, height h, radii r1 -> r2 */
-  | { kind: "cone"; p: V3; d: V3; h: number; r1: number; r2: number };
+  /** a cylinder or cone: base centre p, unit axis d, height h, radii r1 -> r2;
+   * with s, the top centre is shifted sideways by s (a hull of the two circles) */
+  | { kind: "cone"; p: V3; d: V3; h: number; r1: number; r2: number; s?: V3 };
 
 const DEG = Math.PI / 180;
 
@@ -155,7 +171,7 @@ function mapPrims(prims: Prim[], pt: (p: V3) => V3, dir: (d: V3) => V3, flips = 
           pts: q.pts.map(pt),
           faces: flips ? q.faces.map((f) => [...f].reverse()) : q.faces,
         }
-      : { ...q, p: pt(q.p), d: dir(q.d) },
+      : { ...q, p: pt(q.p), d: dir(q.d), ...(q.s ? { s: dir(q.s) } : {}) },
   );
 }
 
@@ -174,17 +190,6 @@ function R(a: V3, prims: Prim[]): Prim[] {
   return mapPrims(prims, f, f);
 }
 
-/** OpenSCAD mirror([1, 0, 0]). */
-function mirrorX(prims: Prim[]): Prim[] {
-  const f = (p: V3): V3 => [-p[0], p[1], p[2]];
-  return mapPrims(prims, f, f, true);
-}
-
-/** _both_sides(): the +x pieces plus their mirror image. */
-function bothSides(prims: Prim[]): Prim[] {
-  return [...prims, ...mirrorX(prims)];
-}
-
 function poly(pts: V3[], faces: number[][]): Prim[] {
   return [{ kind: "poly", pts, faces }];
 }
@@ -198,6 +203,24 @@ function prismZ(pg: V2[], z0: number, z1: number): Prim[] {
     [...Array(n).keys()].map((i) => i + n),
     ...[...Array(n).keys()].map((i) => [i, (i + 1) % n, ((i + 1) % n) + n, i + n]),
   ];
+  return poly(pts, faces);
+}
+
+/** Polygons with the same number of points stacked at heights zs, joined by
+ * flat sides: one solid through all of them. */
+function rings(pgs: V2[][], zs: number[]): Prim[] {
+  const n = pgs[0].length;
+  const pts: V3[] = pgs.flatMap((pg, k) => pg.map(([x, y]): V3 => [x, y, zs[k]]));
+  const ring = (k: number) => [...Array(n).keys()].map((i) => i + k * n);
+  const sides = (k: number) =>
+    [...Array(n).keys()].map((i) => [
+      i + k * n,
+      ((i + 1) % n) + k * n,
+      ((i + 1) % n) + (k + 1) * n,
+      i + (k + 1) * n,
+    ]);
+  const faces = [ring(0).reverse(), ring(pgs.length - 1)];
+  for (let k = 0; k + 1 < pgs.length; k++) faces.push(...sides(k));
   return poly(pts, faces);
 }
 
@@ -218,16 +241,6 @@ function cube(s: V3): Prim[] {
     0,
     s[2],
   );
-}
-
-/** _along_y(y, len): an (x, z) profile extruded along y, centred on y. */
-function alongY(y: number, len: number, pg: V2[]): Prim[] {
-  return T([0, y, 0], R([90, 0, 0], linearExtrude(pg, len, true)));
-}
-
-/** _along_x(len): a (y, z) profile extruded along x, centred on x = 0. */
-function alongX(len: number, pg: V2[]): Prim[] {
-  return R([90, 0, 90], linearExtrude(pg, len, true));
 }
 
 const orientRot = (dir: string): V3 =>
@@ -543,10 +556,8 @@ function baseShell(D: Dims, l: number, w: number, innerH: number, outerH: number
     prismoid([D.base_w - 19, 2.1], [D.base_w - 10, 2.1], D.box_h / 2 - 8),
   );
   const extra: Prim[] = [];
-  if (D.grips) {
-    const y = w / 2 - 16;
-    extra.push(...gripPair(1, l, y, 2.95, 0.95), ...gripPair(-1, l, y, 2.95, 0.95));
-  }
+  const yGrip = w / 2 - 16;
+  extra.push(...gripPair(1, l, yGrip, 2.95, 0.95), ...gripPair(-1, l, yGrip, 2.95, 0.95));
   if (D.footy)
     extra.push(
       ...foot(D.base_w / 2 - 16.82843 - 5, -w / 2),
@@ -622,10 +633,8 @@ function lidShell(
     ...T([l / 2, -w / 2, outerH - 1], linearExtrude(rightTriangle([6, 6], 90), 5)),
   ];
   const extra: Prim[] = [];
-  if (D.grips) {
-    const y = w / 2 - 16;
-    extra.push(...gripPair(1, l, y, 2.95, 1.0), ...gripPair(-1, l, y, 2.95, 1.0));
-  }
+  const yGrip = w / 2 - 16;
+  extra.push(...gripPair(1, l, yGrip, 2.95, 1.0), ...gripPair(-1, l, yGrip, 2.95, 1.0));
   if (D.footy)
     extra.push(
       ...foot(D.base_w / 2 - 5.82843 - 5, -w / 2),
@@ -646,148 +655,17 @@ function lidShell(
 
 // ---------------------------------------------------------------- easy open
 
-const latchS = (D: Dims) => D.slot * Math.SQRT2;
-
-function latchHousing(D: Dims): Prim[] {
-  const xo = D.base_w / 2;
-  const P = D.latch_out;
+/** _pry_notch: an arc through the top of the front tab, flaring out at the front. */
+function pryNotch(D: Dims, d: number): Prim[] {
+  const yi = d / 2 - D.base_t - 0.5;
+  const yc = d / 2 - D.notch_c;
+  const L = D.notch_c + 1;
+  const rise = L * (1 - D.notch_b / D.notch_c);
+  const r = D.notch_r;
+  const p = (y: number): V3 => [0, y, D.base_h - D.notch_h + r];
   return [
-    ...alongY((D.house_y0 + D.house_y1) / 2, D.house_y1 - D.house_y0, [
-      [xo - 0.01, D.latch_z - 1.5],
-      [xo + P, D.latch_z - 1.5 + P],
-      [xo + P, D.base_lip_bot_h],
-      [xo - 0.01, D.base_lip_bot_h],
-    ]),
-    ...alongY((D.latch_y0 + D.latch_y1) / 2, D.latch_y1 - D.latch_y0, [
-      [xo, D.base_lip_bot_h - 0.01],
-      [xo + 0.9, D.base_lip_bot_h - 0.01],
-      [xo + 0.9, D.base_lip_top_h],
-      [xo, D.base_lip_top_h],
-    ]),
-  ];
-}
-
-function latchCuts(D: Dims): Prim[] {
-  const xo = D.base_w / 2;
-  const z = D.latch_z;
-  const s = latchS(D);
-  const len = D.latch_y1 + D.slot - D.latch_y0;
-  const axis: V3 = [Math.SQRT1_2, 0, Math.SQRT1_2];
-  const c: V3 = [xo + 0.75, D.latch_y0, z + 0.75 + s / 2];
-  return [
-    ...T([xo - D.latch_gap, D.latch_y0, z], cube([D.latch_gap, len, D.box_h])),
-    ...alongY((D.latch_y0 + D.latch_y1 + D.slot) / 2, len, [
-      [xo - 0.5, z - 0.5],
-      [xo + 3, z + 3],
-      [xo + 3, z + 3 + s],
-      [xo - 0.5, z - 0.5 + s],
-    ]),
-    ...T([xo - D.latch_gap, D.latch_y1, z - 1], cube([D.latch_gap + 3, D.slot, D.box_h])),
-    {
-      kind: "cone",
-      p: [c[0] - axis[0] * 2.4, c[1], c[2] - axis[2] * 2.4],
-      d: axis,
-      h: 4.8,
-      r1: D.slot,
-      r2: D.slot,
-    },
-  ];
-}
-
-function latchHook(D: Dims): Prim[] {
-  const x0 = D.base_w / 2 + 0.9;
-  const p = 0.2 + D.latch_engage;
-  const zf = D.latch_zb - (p - 0.2) * Math.tan(10 * DEG);
-  return alongY(D.latch_y1 - 1 - D.latch_hook_l / 2, D.latch_hook_l, [
-    [x0 - 0.3, zf - 0.5],
-    [x0 + 0.2, zf],
-    [x0 + p, D.latch_zb],
-    [x0 + p, D.latch_zb + 0.3],
-    [x0 - 0.3, D.latch_zb + D.latch_hh],
-  ]);
-}
-
-function latchRibs(D: Dims): Prim[] {
-  const z0 = D.latch_z + D.latch_out + latchS(D) + 0.4;
-  const z1 = D.base_lip_bot_h - 0.4;
-  if (z1 - z0 <= 1.5) return [];
-  return [0, 1, 2].flatMap((k) =>
-    T(
-      [D.base_w / 2 + D.latch_out, D.latch_y1 - 1.5 - 2 * k, (z0 + z1) / 2],
-      prismoid([z1 - z0, 1], [z1 - z0 - 1, 0.4], 0.5, [0, 0], "right"),
-    ),
-  );
-}
-
-function latchLidHousing(D: Dims): Prim[] {
-  const xo = D.lid_w / 2;
-  const P = D.latch_out;
-  const h = D.lid_h;
-  return alongY((D.house_y0 + D.house_y1) / 2, D.house_y1 - D.house_y0, [
-    [xo - 0.01, h - 3 - P],
-    [xo + P, h - 3],
-    [xo + P, h],
-    [xo + 1.1, h],
-    [xo + 1.1, h - 3],
-    [xo - 0.01, h - 3],
-  ]);
-}
-
-function latchLidCuts(D: Dims): Prim[] {
-  const xo = D.lid_w / 2;
-  const l = D.latch_hook_l + 0.6;
-  const z0 = D.box_h - D.latch_zb - D.latch_hh - 0.2;
-  const z1 = D.box_h - D.latch_zb + 0.25;
-  return [
-    ...T(
-      [xo - 1, D.latch_y0 - 0.5, D.lid_h - 3],
-      cube([1.01, D.latch_y1 + D.slot + 1 - D.latch_y0, 4]),
-    ),
-    ...T(
-      [xo + 0.9, D.latch_y1 - 1 - D.latch_hook_l / 2 - l / 2, z0],
-      cube([D.latch_out, l, z1 - z0]),
-    ),
-  ];
-}
-
-function flexCuts(D: Dims, d: number): Prim[] {
-  const yo = d / 2;
-  const yi = d / 2 - 2;
-  const z = D.base_lip_top_h + 0.45 - 2;
-  const s = latchS(D);
-  const axis: V3 = [0, -Math.SQRT1_2, Math.SQRT1_2];
-  return [
-    ...alongX(2 * D.flex_half, [
-      [yo + 1, z - 1],
-      [yi - 1, z + 3],
-      [yi - 1, z + 3 + s],
-      [yo + 1, z - 1 + s],
-    ]),
-    ...T(
-      [-D.slot / 2, 0, 0],
-      R(
-        [90, 0, 90],
-        linearExtrude(
-          [
-            [yo + 1, z - 1],
-            [yi - 1, z + 3],
-            [yi - 1, D.box_h + 1],
-            [yo + 1, D.box_h + 1],
-          ],
-          D.slot,
-        ),
-      ),
-    ),
-    ...[-1, 1].map(
-      (sx): Prim => ({
-        kind: "cone",
-        p: [sx * D.flex_half, yo - 1 - axis[1] * 2.1, z + 1 + s / 2 - axis[2] * 2.1],
-        d: axis,
-        h: 4.2,
-        r1: D.slot,
-        r2: D.slot,
-      }),
-    ),
+    { kind: "cone", p: p(yi), d: [0, 1, 0], h: yc - yi, r1: r, r2: r },
+    { kind: "cone", p: p(yc), d: [0, 1, 0], h: L, r1: r, r2: r + L, s: [0, 0, rise] },
   ];
 }
 
@@ -795,8 +673,13 @@ function flexCuts(D: Dims, d: number): Prim[] {
 
 const shapeOf = (q: Prim): Shape3D => {
   if (q.kind === "cone") {
-    if (q.r1 === q.r2) return makeCylinder(q.r1, q.h, q.p, q.d);
-    const end: V3 = [q.p[0] + q.d[0] * q.h, q.p[1] + q.d[1] * q.h, q.p[2] + q.d[2] * q.h];
+    if (q.r1 === q.r2 && !q.s) return makeCylinder(q.r1, q.h, q.p, q.d);
+    const s = q.s ?? [0, 0, 0];
+    const end: V3 = [
+      q.p[0] + q.d[0] * q.h + s[0],
+      q.p[1] + q.d[1] * q.h + s[1],
+      q.p[2] + q.d[2] * q.h + s[2],
+    ];
     return loft(
       [assembleWire([makeCircle(q.r1, q.p, q.d)]), assembleWire([makeCircle(q.r2, end, q.d)])],
       { ruled: true },
@@ -837,6 +720,18 @@ function solid(prims: Prim[]): Shape3D | null {
   return shapes[0];
 }
 
+/** Fuses solids pairwise, in a balanced tree (see solid()). */
+function fuseAll(shapes: Shape3D[]): Shape3D | null {
+  if (shapes.length === 0) return null;
+  while (shapes.length > 1) {
+    const next: Shape3D[] = [];
+    for (let i = 0; i < shapes.length; i += 2)
+      next.push(i + 1 < shapes.length ? shapes[i].fuse(shapes[i + 1]) : shapes[i]);
+    shapes = next;
+  }
+  return shapes[0];
+}
+
 const fuse = (a: Shape3D, prims: Prim[]) => {
   const b = solid(prims);
   return b ? a.fuse(b) : a;
@@ -857,16 +752,16 @@ function generateBase(D: Dims): Shape3D {
   s = fuse(s, sh.bump);
   s = cut(s, sh.slot);
   s = fuse(s, sh.extra);
-  if (D.latches) s = fuse(s, bothSides(latchHousing(D)));
 
   const cuts: Prim[] = [];
   if (D.front_snap)
-    cuts.push(
-      ...T(
-        [0, w / 2 - t, D.box_h - 3.5],
-        prismoid([D.snap_w, D.snap_h - 0.2], [D.snap_w, 0.6], D.snap_catch, [0, 0], "back"),
-      ),
-    );
+    for (const x of D.snap_xs)
+      cuts.push(
+        ...T(
+          [x, w / 2 - t, D.box_h - 3.5],
+          prismoid([D.snap_w, D.snap_h - 0.2], [D.snap_w, 0.6], D.snap_catch, [0, 0], "back"),
+        ),
+      );
   cuts.push(
     ...T(
       [0, w / 2 - 1 / 2, D.label_h_loc],
@@ -879,12 +774,10 @@ function generateBase(D: Dims): Shape3D {
       ...footPocket(D.base_w / 2 - 5.8284 - 5, -w / 2 - 0.8),
     );
   cuts.push(...T([-D.base_w / 2, -w / 2 - 0.5, D.box_h / 2 - 0.1], hinge(D, true, true)));
-  if (D.latches) cuts.push(...bothSides(latchCuts(D)));
-  if (D.front_flex) cuts.push(...flexCuts(D, w));
+  if (D.pry) cuts.push(...pryNotch(D, w));
   s = cut(s, cuts);
 
   const adds: Prim[] = [...T([-D.base_w / 2, -w / 2 - 0.5, D.box_h / 2], hinge(D, true, false))];
-  if (D.latches) adds.push(...bothSides([...latchHook(D), ...latchRibs(D)]));
   if (D.side_snaps)
     for (const sx of [-1, 1])
       adds.push(
@@ -918,7 +811,6 @@ function generateLid(D: Dims): Shape3D {
   s = cut(s, sh.cavity);
   s = s.fuse(cut(solid(sh.hingeBump)!, sh.hingeBumpTrim));
   s = fuse(s, sh.extra);
-  if (D.latches) s = fuse(s, bothSides(latchLidHousing(D)));
 
   const cuts: Prim[] = [];
   if (D.footy)
@@ -948,7 +840,6 @@ function generateLid(D: Dims): Shape3D {
           ),
         ),
       );
-  if (D.latches) cuts.push(...bothSides(latchLidCuts(D)));
   s = cut(s, cuts);
 
   // hinge knuckles, each with a cone dimple at both ends
@@ -958,33 +849,29 @@ function generateLid(D: Dims): Shape3D {
   );
   s = s.fuse(knuckles);
 
-  if (D.lift_tab) {
-    const tw = Math.min(D.lift_tab_width, D.box_w - 20);
-    const len = 3 + D.lift_tab_reach;
-    const tab = drawRoundedRectangle(tw, len, 1.5)
-      .sketchOnPlane("XY", [0, w / 2 - 3 + len / 2, 0])
-      .extrude(1.6) as Shape3D;
-    s = s.fuse(tab);
-  }
-
-  if (D.front_snap) {
-    let latch = solid(
-      T(
-        [0, w / 2 - 2.1, 3.5],
-        prismoid([D.snap_w + 0.4, D.snap_h], [D.snap_w - 1.2, 0.6], D.snap_depth, [0, 0], "back"),
-      ),
-    )!;
-    latch = cut(
-      latch,
-      [-1, 1].flatMap((sx) =>
+  if (D.front_snap)
+    for (const x of D.snap_xs) {
+      let latch = solid(
         T(
-          [sx * (D.snap_w / 2 + 0.5) - 0.5, w / 2 - 2.1 + 0.5 - 0.5, 3.5 - (D.snap_h + 0.1) / 2],
-          cube([1, 1, D.snap_h + 0.1]),
+          [x, w / 2 - 2.1, 3.5],
+          prismoid([D.snap_w + 0.4, D.snap_h], [D.snap_w - 1.2, 0.6], D.snap_depth, [0, 0], "back"),
         ),
-      ),
-    );
-    s = s.fuse(latch);
-  }
+      )!;
+      latch = cut(
+        latch,
+        [-1, 1].flatMap((sx) =>
+          T(
+            [
+              x + sx * (D.snap_w / 2 + 0.5) - 0.5,
+              w / 2 - 2.1 + 0.5 - 0.5,
+              3.5 - (D.snap_h + 0.1) / 2,
+            ],
+            cube([1, 1, D.snap_h + 0.1]),
+          ),
+        ),
+      );
+      s = s.fuse(latch);
+    }
   return s;
 }
 
@@ -1196,8 +1083,12 @@ function inserts(D: Dims, origin: V3): Shape3D | null {
             ),
           );
   }
-  // _base_cavity_in_grid()
-  const cavity = T(
+  return solid(T(origin, blocks))!.intersect(solid(T(origin, baseCavityInGrid(D, origin)))!);
+}
+
+/** _base_cavity_in_grid(). */
+function baseCavityInGrid(D: Dims, origin: V3): Prim[] {
+  return T(
     [-origin[0], -origin[1], -origin[2]],
     T(
       [0, D.base_outer_d / 2 + 0.5 + 0.5, 1.6 - 0.1],
@@ -1210,7 +1101,118 @@ function inserts(D: Dims, origin: V3): Shape3D | null {
       ),
     ),
   );
-  return solid(T(origin, blocks))!.intersect(solid(T(origin, cavity))!);
+}
+
+/** generate_scoops(), placed at the grid origin. */
+function scoops(D: Dims, origin: V3): Shape3D | null {
+  if (D.scoops.length === 0) return null;
+  const pieces = D.scoops.map(([x0, x1, y, r]) =>
+    solid(T([x0, y - r, 0], cube([x1 - x0, r, 0.1 + r])))!.cut(
+      solid([
+        { kind: "cone", p: [x0 - 1, y - r, 0.1 + r], d: [1, 0, 0], h: x1 - x0 + 2, r1: r, r2: r },
+      ])!,
+    ),
+  );
+  let s = pieces[0];
+  for (const q of pieces.slice(1)) s = s.fuse(q);
+  return s.intersect(solid(baseCavityInGrid(D, origin))!).translate(origin);
+}
+
+// ---------------------------------------------------------------- gridfinity
+
+/** A ruled loft through rounded rectangles [w, d, r, z], centred on the z axis:
+ * hull() of _gf_rounded() slices in the scad. */
+function roundedLoft(sections: [number, number, number, number][]): Shape3D {
+  const wires = sections.map(
+    ([w, d, r, z]) => (drawRoundedRectangle(w, d, r).sketchOnPlane("XY", z) as Sketch).wire,
+  );
+  return loft(wires, { ruled: true });
+}
+
+/** _gf_pocket_outline(grow) */
+function gfPocketOutline(D: Dims, grow = 0): V2[] {
+  const [w, h, k] = [D.gf_pw / 2, D.gf_ph / 2, D.gf_pk];
+  const pg: V2[] = [
+    [-w + k, -h],
+    [w - k, -h],
+    [w, -h + k],
+    [w, h - k],
+    [w - k, h],
+    [-w + k, h],
+    [-w, h - k],
+    [-w, -h + k],
+  ];
+  return grow ? offsetConvex(pg, grow) : pg;
+}
+
+/** _gf_pocket(): pocket, flare and recesses */
+function gfPocket(D: Dims): Prim[] {
+  const o = gfPocketOutline(D);
+  const top = D.gf_h - D.gf_c;
+  return [
+    ...rings([o, o], [D.gf_floor, top + 0.5]),
+    ...rings([o, gfPocketOutline(D, D.gf_c + 1)], [top, D.gf_h + 1]),
+    ...D.gf_recesses.flatMap(([u0, u1, v0, v1]) =>
+      T([u0, v0, D.gf_floor - D.gf_recess], cube([u1 - u0, v1 - v0, D.gf_recess + 0.5])),
+    ),
+  ];
+}
+
+/** _gf_magnet_hole(), at the origin. */
+function gfMagnetHole(D: Dims): Shape3D {
+  let hole = solid(T([0, 0, -1], cyl(1 + D.gf_mag_h, D.gf_mag_r)))!;
+  if (D.gf_mag_ribs) {
+    const rib = T(
+      [D.gf_rib_r, -0.4, -1],
+      cube([D.gf_mag_r + 0.2 - D.gf_rib_r, 0.8, 1 + D.gf_mag_h + 0.1]),
+    );
+    hole = cut(
+      hole,
+      [...Array(8).keys()].flatMap((k) => R([0, 0, k * 45], rib)),
+    );
+  }
+  return fuse(hole, T([0, 0, -0.5], cyl(1, D.gf_mag_r + 1, D.gf_mag_r)));
+}
+
+/** generate_gridfinity(), centred on the origin. */
+export function gridfinity(D: Dims): Shape3D | null {
+  if (!D.gridfinity) return null;
+  const cells: V2[] = [];
+  for (let i = 0; i < D.gf_x; i++)
+    for (let j = 0; j < D.gf_y; j++)
+      cells.push([(i - (D.gf_x - 1) / 2) * 42, (j - (D.gf_y - 1) / 2) * 42]);
+
+  const pieces = cells.map(([x, y]) =>
+    roundedLoft([
+      [35.6, 35.6, 0.8, 0],
+      [37.2, 37.2, 1.6, 0.8],
+      [37.2, 37.2, 1.6, 2.6],
+      [41.5, 41.5, 3.75, 4.75],
+    ]).translate([x, y, 0]),
+  );
+  const [w, d, r, c] = [D.gf_w, D.gf_d, D.gf_r, D.gf_c];
+  pieces.push(
+    roundedLoft([
+      [w, d, r, 4.75],
+      [w, d, r, D.gf_h - c],
+      [w - 2 * c, d - 2 * c, r - c, D.gf_h],
+    ]),
+  );
+  let s = fuseAll(pieces)!;
+
+  const pocket = gfPocket(D);
+  const cuts: Prim[] = D.gf_pockets.flatMap(([x, y]) =>
+    T([x, y, 0], D.gf_turn ? R([0, 0, 90], pocket) : pocket),
+  );
+  s = cut(s, cuts);
+  if (D.gf_magnets) {
+    const holes: Shape3D[] = [];
+    for (const [x, y] of cells)
+      for (const dx of [-13, 13])
+        for (const dy of [-13, 13]) holes.push(gfMagnetHole(D).translate([x + dx, y + dy, 0]));
+    s = s.cut(fuseAll(holes)!);
+  }
+  return s;
 }
 
 // ---------------------------------------------------------------- assembly
@@ -1256,5 +1258,14 @@ export function buildClamshell(D: Dims): Parts {
       ),
     );
   const origin: V3 = [-D.base_w / 2 + D.base_t, D.base_t + 1.5, D.shell_bottom_t - 0.1];
-  return { base, lid, dividers: solid(div), inserts: inserts(D, origin) };
+  let dividers = solid(div);
+  const sc = scoops(D, origin);
+  if (sc) dividers = dividers ? dividers.fuse(sc) : sc;
+  return {
+    base,
+    lid,
+    dividers,
+    inserts: inserts(D, origin),
+    gridfinity: gridfinity(D)?.translate([D.gf_at, 0, 0]) ?? null,
+  };
 }

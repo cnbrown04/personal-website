@@ -547,7 +547,10 @@ mod file_tests {
         );
         let parts = crate::pipeline::part_plan(&schema).expect("model declares parts");
         let names: Vec<_> = parts.iter().map(|p| p.name.as_str()).collect();
-        assert_eq!(names, ["base", "lid", "dividers", "inserts"]);
+        assert_eq!(names, ["base", "lid", "dividers", "inserts", "gridfinity"]);
+        assert!(parts[4].ignores.contains("cells"));
+        assert!(!parts[4].ignores.contains("footy"));
+        assert!(parts[0].ignores.contains("gridfinity_x"));
         assert_eq!(by("fills").unwrap().default, json!([]));
         assert_eq!(by("tools").unwrap().kind, ParamKind::Vector);
         assert!(parts[0].ignores.contains("cells"));
@@ -567,11 +570,11 @@ mod file_tests {
 
         // Easy-open options: basic toggles, tuning under Advanced, and the
         // multi-line hint list must not leak knobs.
-        assert_eq!(by("lid_lock").unwrap().options.len(), 2);
-        assert!(!by("front_flex").unwrap().hidden);
-        assert!(!by("lift_tab").unwrap().hidden);
-        assert!(by("latch_length").unwrap().hidden);
-        for derived in ["_hints", "why", "_latches", "_latch_s"] {
+        assert!(!by("pry_notch").unwrap().hidden);
+        assert!(by("lift_tab").is_none());
+        assert!(!by("finger_scoops").unwrap().hidden);
+        assert!(!by("scoop_radius").unwrap().hidden);
+        for derived in ["_hints", "why", "_pry", "_notch_ok", "_scoops", "_fill_ids"] {
             assert!(by(derived).is_none(), "{derived} became a knob");
         }
     }

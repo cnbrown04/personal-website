@@ -12,7 +12,7 @@ params ─▶ Rust/wasm planner ─▶ OpenSCAD (wasm) × N workers ─▶ 3MF p
 
 - **Geometry** runs on the visitor's CPU cores: the official OpenSCAD
   WebAssembly build (`vendor/openscad/`, Manifold backend) in a pool of Web
-  Workers. Each model part (`base`, `lid`, `dividers`, `inserts`) renders in
+  Workers. Each model part (`base`, `lid`, `dividers`, `inserts`, `gridfinity`) renders in
   parallel and is cached under a key that ignores parameters the part doesn't
   use. OpenSCAD's CSG has no GPU implementation, so this part can't move to
   the GPU.

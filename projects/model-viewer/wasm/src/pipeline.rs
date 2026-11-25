@@ -283,7 +283,7 @@ mod tests {
         }
         let first = plan("hash", &schema, &params, Some(32.0)).unwrap();
         let parts: Vec<_> = first.jobs.iter().map(|j| j.part.as_str()).collect();
-        assert_eq!(parts, ["base", "lid", "dividers", "inserts"]);
+        assert_eq!(parts, ["base", "lid", "dividers", "inserts", "gridfinity"]);
         // A divider change must not invalidate the base.
         let mut moved = params.clone();
         moved.insert("cells".into(), json!([]));

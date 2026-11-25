@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { ParamHints } from "../hints";
 import { LAYOUT_PARAMS } from "../layout/model";
 import type { Params, Schema } from "../types";
-import { Control } from "./Control";
+import { Control, labelFor } from "./Control";
 
 interface Props {
   schema: Schema;
@@ -20,9 +20,15 @@ interface Props {
   /** Rendered above the parameter list. */
   presets?: React.ReactNode;
   compartments?: React.ReactNode;
-  onExport: (format: string) => void;
+  /** `format` is a key of EXPORTS. */
+  onExport: (format: string, scope: ExportScope) => void;
   exporting: string | null;
+  /** Offer box-only and bin-only downloads (the Gridfinity bin is on). */
+  canExportBin?: boolean;
 }
+
+/** "all" is the box and the Gridfinity bin, as separate files. */
+export type ExportScope = "all" | "box" | "bin";
 
 const EXPORTS = [
   ["stl", "STL"],
@@ -30,6 +36,18 @@ const EXPORTS = [
   ["obj", "OBJ"],
   ["step", "STEP (exact curves)"],
 ] as const;
+
+const SCOPES: [ExportScope, string][] = [
+  ["all", "Everything (Box and Bin as Two Files)"],
+  ["box", "Box Only"],
+  ["bin", "Gridfinity Bin Only"],
+];
+
+/** `clamshell.scad` -> "Clamshell". */
+function titleOf(file: string): string {
+  const stem = file.replace(/\.scad$/i, "").replace(/[_-]+/g, " ");
+  return stem.charAt(0).toUpperCase() + stem.slice(1);
+}
 
 // These are owned by the layout editor rather than shown as raw fields.
 const EDITOR_OWNED = new Set<string>([...LAYOUT_PARAMS, "lid_dividers", "fills", "tools"]);
@@ -49,6 +67,7 @@ export function Panel({
   compartments,
   onExport,
   exporting,
+  canExportBin,
 }: Props) {
   const [query, setQuery] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -65,6 +84,7 @@ export function Panel({
         if (!needle) return true;
         return (
           p.name.toLowerCase().includes(needle) ||
+          labelFor(p.name).toLowerCase().includes(needle) ||
           p.group.toLowerCase().includes(needle) ||
           (p.description ?? "").toLowerCase().includes(needle)
         );
@@ -81,9 +101,11 @@ export function Panel({
     <aside className="panel">
       <header className="panel-head">
         <div>
-          <h1>{schema.file}</h1>
+          <h1>{titleOf(schema.file)}</h1>
           <p className="sub">
-            {schema.params.length} parameters · {modifiedCount} changed
+            {modifiedCount === 0
+              ? "Default settings"
+              : `${modifiedCount} setting${modifiedCount === 1 ? "" : "s"} changed`}
           </p>
         </div>
         <div className="panel-head-actions">
@@ -113,17 +135,28 @@ export function Panel({
           <select
             value=""
             onChange={(e) => {
-              if (e.target.value) onExport(e.target.value);
+              const [scope, format] = e.target.value.split(":");
+              if (format) onExport(format, scope as ExportScope);
               e.target.value = "";
             }}
             disabled={Boolean(exporting)}
           >
             <option value="">{exporting ? `exporting ${exporting}…` : "Download…"}</option>
-            {EXPORTS.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
+            {canExportBin
+              ? SCOPES.map(([scope, title]) => (
+                  <optgroup key={scope} label={title}>
+                    {EXPORTS.map(([value, label]) => (
+                      <option key={value} value={`${scope}:${value}`}>
+                        {label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))
+              : EXPORTS.map(([value, label]) => (
+                  <option key={value} value={`all:${value}`}>
+                    {label}
+                  </option>
+                ))}
           </select>
         </div>
       </header>
@@ -134,7 +167,7 @@ export function Panel({
       <div className="panel-tools">
         <input
           type="search"
-          placeholder="Filter parameters…"
+          placeholder="Search settings"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -159,8 +192,7 @@ export function Panel({
               onClick={() => setCollapsed((c) => ({ ...c, [group.name]: !isCollapsed }))}
             >
               <span className="chev">{isCollapsed ? "▸" : "▾"}</span>
-              <span>{group.name === "Hidden" ? "Advanced (internal)" : group.name}</span>
-              <span className="count">{items.length}</span>
+              <span>{group.name === "Hidden" ? "Internal" : group.name}</span>
             </button>
             {!isCollapsed && (
               <div className="group-body">
@@ -181,7 +213,7 @@ export function Panel({
         );
       })}
 
-      {groups.length === 0 && <p className="empty">No parameters match “{query}”.</p>}
+      {groups.length === 0 && <p className="empty">No settings match “{query}”.</p>}
     </aside>
   );
 }

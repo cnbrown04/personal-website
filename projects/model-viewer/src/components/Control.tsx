@@ -16,11 +16,11 @@ export function Control({ param, value, hint, onChange, onReset }: Props) {
   return (
     <div className={`control ${modified ? "modified" : ""} ${off ? "inactive" : ""}`}>
       <div className="control-head">
-        <label htmlFor={`p-${param.name}`} title={`line ${param.line}`}>
-          {param.name}
+        <label htmlFor={`p-${param.name}`} title={`${param.name} (line ${param.line})`}>
+          {labelFor(param.name)}
         </label>
         {modified && (
-          <button type="button" className="reset" onClick={onReset} title="Back to file default">
+          <button type="button" className="reset" onClick={onReset} title="Reset to default">
             ↺
           </button>
         )}
@@ -33,6 +33,46 @@ export function Control({ param, value, hint, onChange, onReset }: Props) {
       </fieldset>
     </div>
   );
+}
+
+// Short words in setting names, spelled out for their labels.
+const WORDS: Record<string, string> = {
+  d: "diameter",
+  dia: "diameter",
+  h: "height",
+  w: "width",
+  loc: "position",
+  len: "length",
+  t: "thickness",
+};
+
+// Left lower case in titles, unless first.
+const MINOR = new Set([
+  "a",
+  "an",
+  "and",
+  "as",
+  "at",
+  "by",
+  "for",
+  "in",
+  "of",
+  "on",
+  "or",
+  "the",
+  "to",
+]);
+
+/** `gridfinity_magnet_d` -> "Gridfinity Magnet Diameter". */
+export function labelFor(name: string): string {
+  return name
+    .split("_")
+    .filter(Boolean)
+    .map((w, i) => {
+      const word = WORDS[w] ?? w;
+      return i > 0 && MINOR.has(word) ? word : word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
 }
 
 function Widget({ param, value, onChange }: Omit<Props, "onReset">) {

@@ -153,11 +153,6 @@ input[type="checkbox"] {
 .group-head:hover {
   background: var(--panel-2);
 }
-.group-head .count {
-  margin-left: auto;
-  color: var(--muted);
-  font-weight: 400;
-}
 .chev {
   color: var(--muted);
 }
@@ -180,7 +175,7 @@ input[type="checkbox"] {
 }
 .control label {
   font-size: 12px;
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-weight: 500;
 }
 .control.modified label {
   color: var(--accent);
@@ -218,9 +213,6 @@ input[type="checkbox"] {
   color: var(--warn);
   font-style: normal;
 }
-.dimmed {
-  opacity: 0.4;
-}
 
 .control select,
 .control input[type="text"],
@@ -251,83 +243,6 @@ input[type="checkbox"] {
   font-size: 12px;
 }
 
-.bitfield {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  flex-wrap: wrap;
-}
-.bit {
-  width: 22px;
-  padding: 2px 0;
-  text-align: center;
-  font-family: ui-monospace, monospace;
-  color: var(--muted);
-}
-.bit.on {
-  background: var(--accent-dim);
-  color: #fff;
-  border-color: var(--accent);
-}
-.bitfield code {
-  margin-left: 4px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-/* ---------- divider grid ---------- */
-
-.mask-grid {
-  padding: 10px 16px 14px;
-  border-bottom: 1px solid var(--line);
-}
-.mask-grid-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-}
-.mask-actions {
-  display: flex;
-  gap: 4px;
-}
-.mask-actions button {
-  padding: 2px 7px;
-  font-size: 11px;
-}
-.mask-svg {
-  width: 100%;
-  max-height: 260px;
-  margin-top: 8px;
-}
-.mask-outer {
-  fill: none;
-  stroke: var(--line);
-  stroke-width: 2;
-}
-.mask-cell {
-  fill: #10141b;
-}
-.mask-wall {
-  cursor: pointer;
-  transition: fill 0.12s ease;
-}
-.mask-wall.on {
-  fill: var(--accent);
-}
-.mask-wall.off {
-  fill: #2c3442;
-}
-.mask-wall.on:hover {
-  fill: #8ed0ff;
-}
-.mask-wall.off:hover {
-  fill: #46536a;
-}
-.mask-grid .hint {
-  margin: 6px 0 0;
-  font-size: 11px;
-}
 .empty {
   padding: 20px 16px;
   color: var(--muted);
@@ -341,53 +256,6 @@ input[type="checkbox"] {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-}
-
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  align-items: center;
-  padding: 8px 12px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--line);
-}
-.tb-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.tb-group.right {
-  margin-left: auto;
-}
-.tb-label {
-  color: var(--muted);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.toolbar button {
-  padding: 3px 9px;
-  font-size: 12px;
-}
-.toggle.on {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-  color: #fff;
-}
-.swatch {
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border-radius: 4px;
-  border: 1px solid var(--line);
-}
-.swatch.off {
-  opacity: 0.3;
-  filter: grayscale(1);
-}
-.presets input {
-  width: 90px;
 }
 
 .canvas-wrap {
@@ -432,15 +300,6 @@ canvas {
   }
 }
 
-.watermark {
-  position: absolute;
-  left: 12px;
-  bottom: 10px;
-  color: var(--muted);
-  font-size: 11px;
-  pointer-events: none;
-}
-
 /* ---------- status bar ---------- */
 
 .statusbar {
@@ -453,28 +312,7 @@ canvas {
   border-top: 1px solid var(--line);
   font-size: 11.5px;
 }
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--good);
-}
-.dot.busy {
-  background: var(--warn);
-  animation: pulse 1s ease-in-out infinite;
-}
-.dot.bad {
-  background: var(--bad);
-}
-@keyframes pulse {
-  50% {
-    opacity: 0.3;
-  }
-}
 
-.status-text {
-  min-width: 130px;
-}
 .metric {
   color: var(--text);
   display: flex;
@@ -578,8 +416,6 @@ canvas {
   color: #06121f;
 }
 
-.vp-edit-toggle,
-.vp-palette,
 .vp-actions,
 .vp-hint {
   position: absolute;
@@ -590,38 +426,6 @@ canvas {
   backdrop-filter: blur(6px);
 }
 
-.vp-edit-toggle {
-  top: 12px;
-  left: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 12px;
-}
-.vp-grid-icon {
-  width: 16px;
-  height: 16px;
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 1.8;
-}
-
-.vp-palette {
-  top: 12px;
-  left: 12px;
-  width: 262px;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  font-size: 12px;
-}
-.vp-palette-head {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 2px;
-}
 .vp-count {
   color: var(--muted);
   background: var(--panel-2);
@@ -645,12 +449,6 @@ canvas {
 .vp-row button {
   padding: 3px 8px;
   font-size: 12px;
-}
-.vp-sep {
-  width: 1px;
-  height: 18px;
-  background: var(--line);
-  margin: 0 2px;
 }
 .vp-tool {
   width: 32px;
@@ -757,10 +555,6 @@ canvas {
   color: var(--muted);
   pointer-events: none;
   white-space: nowrap;
-}
-.watermark {
-  left: auto;
-  right: 12px;
 }
 
 /* ---------- presets ---------- */
@@ -1136,4 +930,38 @@ button.link:hover {
   flex: 0 0 auto;
   padding: 2px 8px;
   font-size: 14px;
+}
+
+/* ---------- part tabs ---------- */
+
+.view-tabs {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: rgba(21, 26, 35, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+}
+.view-tabs button {
+  padding: 4px 12px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--muted);
+}
+.view-tabs button:hover:not(.active) {
+  color: var(--text);
+  border-color: transparent;
+}
+.view-tabs button.active {
+  background: var(--panel-2);
+  border-color: var(--line);
+  color: var(--text);
 }

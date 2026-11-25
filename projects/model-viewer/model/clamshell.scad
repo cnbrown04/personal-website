@@ -63,7 +63,7 @@ depth = 80;          // [35:110]
 height = 25;         // [17:110]
 
 /* [Label] */
-// The label pocket is always centred on the box height
+// The label pocket is centred on the box height, or lower to make room for a pry notch
 label_width = 40.5;  // [0:90]
 label_height = 14.25; // [0:50]
 
@@ -85,7 +85,7 @@ box_d       = dims[1];
 box_h       = dims[2];
 label_w     = dims[3];
 label_h     = dims[4];
-label_h_loc = box_h / 2;
+// label_h_loc (the pocket's centre height) is set under Easy Open: the pry notch can push it down
 
 /* [Features] */
 // Add the feet on the back
@@ -127,31 +127,39 @@ function snap_fit_dims(key) =
     [snap_width, snap_depth, snap_catch_depth, snap_height,
      side_snap_length, side_snap_depth, side_snap_catch_depth];
 
-/* [Easy Open] Experimental: ways to make the lid easier to open */
-// How the lid locks. "squeeze latches" swaps the front and side snaps for a press-to-release latch in a 2 mm housing on each side (the box gets 4 mm wider): squeeze the ribbed spots, then lift
-lid_lock = "snaps";     // ["snaps", "squeeze latches"]
-// Cut the front snap's catch free into two springs so it opens with much less force
-front_flex = false;
-// A thumb ledge on the lid's front edge to push the lid up with
-lift_tab = false;
+/* [Easy Open] Ways to make the lid easier to open; the snaps hold just the same */
+// Curved notches in the front seam, either side of the front snap, with chamfered edges for a fingertip to push the lid up (a coin twisted in works too)
+pry_notch = false;
 
-/* [Hidden] */
-// Squeeze latch spring length, front to back; longer = lighter squeeze (mm)
-latch_length = 20;      // [12:0.5:60]
-// How far the latch hook reaches into the lid's rim; more = firmer hold (mm)
-latch_engage = 0.6;     // [0.3:0.05:0.8]
-// Front flex spring span, side to side; longer = lighter snap (mm)
-front_flex_length = 32; // [20:1:200]
-// Lift tab width (mm)
-lift_tab_width = 20;    // [8:0.5:40]
-// How far the lift tab sticks out past the front (mm)
-lift_tab_reach = 4;     // [2:0.5:8]
+/* [Gridfinity] A Gridfinity bin that holds closed boxes of the size above, standing on their hinge side */
+// Add the bin, built beside the box; it downloads with it
+gridfinity = false;
+// Bin width in 42 mm grid units, left to right
+gridfinity_x = 4;       // [1:12]
+// Bin depth in 42 mm grid units, front to back
+gridfinity_y = 4;       // [1:12]
+// How far each box sits down into the bin (mm)
+gridfinity_depth = 14;  // [6:1:60]
+// Height of the pocket floor above the bottom of the bin; lower it to drop the boxes, and the whole bin, down (mm)
+gridfinity_floor = 9.5;  // [6:0.1:20]
+// Magnet holes under each grid square, four per square
+gridfinity_magnets = false;
+// Magnet diameter; the hole is 0.5 mm wider (mm)
+gridfinity_magnet_d = 6;     // [2:0.1:7.5]
+// Magnet thickness; the hole is 0.4 mm deeper (mm)
+gridfinity_magnet_h = 2;     // [0.5:0.1:4]
+// How the magnets stay in: "press fit" has eight thin crush ribs inside the hole that grip the magnet, no glue needed; "glue" is a plain hole
+gridfinity_magnet_fit = "press fit"; // ["press fit", "glue"]
 
 /* [Dividers] */
 bottom_chamfer = false;
 chamfer_size   = 2;
 // Repeat the base's compartment layout inside the lid
 lid_dividers = true;
+// A curved ramp along the front of each compartment in the base, so small parts slide up and out under a fingertip
+finger_scoops = false;
+// Finger scoop size: the radius of the curve; smaller in shallow or short compartments (mm)
+scoop_radius = 10;      // [3:0.5:30]
 
 /* [Compartment Layout]
    Edited visually in the web viewer's layout editor.
@@ -200,14 +208,17 @@ divider_color = "#5B6578";
 // Web viewer: build one piece at a time. The viewer renders the parts in parallel
 // and caches each one, re-using a part when only settings it ignores changed.
 // "all" is the normal printable assembly.
-mv_part = "all"; // ["all", "base", "lid", "dividers", "inserts"]
+mv_part = "all"; // ["all", "base", "lid", "dividers", "inserts", "gridfinity"]
+// Downloading one part on its own: build it at the origin instead of beside the box
+mv_solo = false;
 function _mv_build(part) = mv_part == "all" || mv_part == part;
 // Settings each part does not depend on (keep these conservative: a missing
 // entry only costs a re-render, a wrong one would show a stale part).
-mv_ignore_base     = ["col_splits", "row_splits", "cells", "lid_dividers", "bottom_chamfer", "chamfer_size", "divider_color", "fills", "tools", "insert_color", "snap_depth", "side_snap_catch_depth", "lift_tab_width", "lift_tab_reach"];
-mv_ignore_lid      = ["col_splits", "row_splits", "cells", "lid_dividers", "bottom_chamfer", "chamfer_size", "divider_color", "fills", "tools", "insert_color", "label_width", "label_height", "snap_catch_depth", "side_snap_depth", "front_flex", "front_flex_length", "latch_engage"];
-mv_ignore_dividers = ["footy", "label_width", "label_height", "hinge_clear", "hinge_dia", "hinge_comp_len", "fills", "tools", "insert_color", "snap_fit", "front_snap", "side_snaps", "snap_width", "snap_depth", "snap_catch_depth", "snap_height", "side_snap_length", "side_snap_depth", "side_snap_catch_depth", "lid_lock", "front_flex", "lift_tab", "latch_length", "latch_engage", "front_flex_length", "lift_tab_width", "lift_tab_reach"];
-mv_ignore_inserts  = ["footy", "label_width", "label_height", "hinge_clear", "hinge_dia", "hinge_comp_len", "lid_dividers", "bottom_chamfer", "chamfer_size", "divider_color", "snap_fit", "front_snap", "side_snaps", "snap_width", "snap_depth", "snap_catch_depth", "snap_height", "side_snap_length", "side_snap_depth", "side_snap_catch_depth", "lid_lock", "front_flex", "lift_tab", "latch_length", "latch_engage", "front_flex_length", "lift_tab_width", "lift_tab_reach"];
+mv_ignore_base     = ["col_splits", "row_splits", "cells", "lid_dividers", "bottom_chamfer", "chamfer_size", "divider_color", "fills", "tools", "insert_color", "snap_depth", "side_snap_catch_depth", "gridfinity", "gridfinity_x", "gridfinity_y", "gridfinity_depth", "gridfinity_floor", "gridfinity_magnets", "gridfinity_magnet_d", "gridfinity_magnet_h", "gridfinity_magnet_fit"];
+mv_ignore_lid      = ["col_splits", "row_splits", "cells", "lid_dividers", "bottom_chamfer", "chamfer_size", "divider_color", "fills", "tools", "insert_color", "label_width", "label_height", "snap_catch_depth", "side_snap_depth", "pry_notch", "finger_scoops", "scoop_radius", "gridfinity", "gridfinity_x", "gridfinity_y", "gridfinity_depth", "gridfinity_floor", "gridfinity_magnets", "gridfinity_magnet_d", "gridfinity_magnet_h", "gridfinity_magnet_fit"];
+mv_ignore_dividers = ["footy", "label_width", "label_height", "hinge_clear", "hinge_dia", "hinge_comp_len", "tools", "insert_color", "snap_fit", "front_snap", "side_snaps", "snap_width", "snap_depth", "snap_catch_depth", "snap_height", "side_snap_length", "side_snap_depth", "side_snap_catch_depth", "pry_notch", "gridfinity", "gridfinity_x", "gridfinity_y", "gridfinity_depth", "gridfinity_floor", "gridfinity_magnets", "gridfinity_magnet_d", "gridfinity_magnet_h", "gridfinity_magnet_fit"];
+mv_ignore_inserts  = ["footy", "label_width", "label_height", "hinge_clear", "hinge_dia", "hinge_comp_len", "lid_dividers", "bottom_chamfer", "chamfer_size", "divider_color", "snap_fit", "front_snap", "side_snaps", "snap_width", "snap_depth", "snap_catch_depth", "snap_height", "side_snap_length", "side_snap_depth", "side_snap_catch_depth", "pry_notch", "finger_scoops", "scoop_radius", "gridfinity", "gridfinity_x", "gridfinity_y", "gridfinity_depth", "gridfinity_floor", "gridfinity_magnets", "gridfinity_magnet_d", "gridfinity_magnet_h", "gridfinity_magnet_fit"];
+mv_ignore_gridfinity = ["label_width", "label_height", "snap_fit", "front_snap", "side_snaps", "snap_width", "snap_depth", "snap_catch_depth", "snap_height", "side_snap_length", "side_snap_depth", "side_snap_catch_depth", "pry_notch", "bottom_chamfer", "chamfer_size", "lid_dividers", "finger_scoops", "scoop_radius", "col_splits", "row_splits", "cells", "fills", "tools", "divider_color", "insert_color"];
 
 insert_color = "#8A96A8";
 
@@ -253,36 +264,37 @@ _side_snap_zh   = 1.6;               // ridge height at its root
 _side_snap_z    = box_h - 6.5;       // ridge centre in the base; groove centre in the lid is at z = 6.5
 
 // --- Easy-open params
-// Closed, a lid point at height z sits at box_h - z in the base's frame, at the same y.
-// Both springs are strips cut free by a slot underneath. Neither takes room from
-// the compartments or opens into them: the squeeze latches live in a housing on
-// the outside of the side walls, and the front springs sit above the compartments'
-// top edge.
-_latch_l        = min(latch_length, box_d - 20);  // must stay on the flat of the side
-_latch_ok       = _latch_l >= 12;                 // any shorter is too stiff to squeeze
-_latches        = lid_lock == "squeeze latches" && _latch_ok;
-// The squeeze latches replace both snaps
-_front_snap     = front_snap && !_latches;
-_side_snaps     = side_snaps && !_latches;
-// Each front spring's length; the roots must stay under the full height of the front tab
-_flex_half      = min(front_flex_length/2, box_w/2 - 17);
-_flex_ok        = _flex_half >= 10;
-_front_flex     = front_flex && _front_snap && _flex_ok;
-_slot           = 0.6;               // spring slot width
-_latch_y        = 0.5;               // spring centre; the root is at the back, the free end at the front
-_latch_y0       = _latch_y - _latch_l/2;
-_latch_y1       = _latch_y + _latch_l/2;
-_latch_hook_l   = min(10, _latch_l/2);
-_latch_zb       = box_h - 6.9;       // underside of the hook
-_latch_hh       = 1.6;               // hook height
-_latch_out      = 2;                 // how far the housing stands proud of the side
-// How far the latch can be pushed in before it bottoms out on the wall: enough to
-// let go, no more. It's recessed into the outside of the wall, which keeps the rest.
-_latch_gap      = latch_engage + 0.4;
-_latch_z        = max(base_lip_bot_h - 7, 2.5);  // bottom of the slot under the latch spring
-// Housing ends, front to back, on the base and the lid
-_house_y0       = _latch_y0 - 2;
-_house_y1       = _latch_y1 + _slot + 2;
+// Pry notch: a curved scallop down into the middle of the top of the base's
+// front tab, up to the lid's top plate. The front snap is split in two, one
+// either side of it, each half as wide (but at least 5 mm), so the hold stays. Its front edge flares out at 45° so a fingertip slides in.
+// The label pocket on the front can reach nearly to the top, so the notch stays
+// 0.6 mm clear of it. With the notch on, the label moves down from centre as far
+// as it needs to for the full notch, but keeps its bottom edge 3 mm up (1 mm above
+// the 2 mm bottom chamfer). If that's still not enough, the notch gets shallower,
+// and the flare at the bottom of the arc is only as deep as there is room for.
+_has_label      = label_w > 0 && label_h > 0;
+_notch_w        = 14;                // width where it meets the lid, inside the flare
+_notch_c        = 1;                 // 45° flare on the sides
+// The pocket's front face spans label_h_loc - label_h/2 to label_h_loc + label_h/2 + 0.5
+_label_hi       = base_h - 0.6 - 2 - _notch_c - label_h/2 - 0.5;  // highest centre for the full notch
+_label_lo       = 3 + label_h/2;                                   // lowest centre allowed
+label_h_loc     = pry_notch && _has_label
+                    ? min(box_h/2, max(_label_hi, min(_label_lo, box_h/2)))
+                    : box_h/2;
+_label_top      = _has_label ? label_h_loc + label_h/2 + 0.5 : 0;
+_notch_room     = base_h - _label_top - 0.6;
+_notch_h        = min(2, _notch_room);  // depth in the middle; plus the 0.2 mm seam
+_notch_b        = max(0, min(_notch_c, _notch_room - _notch_h));  // flare at the bottom
+_notch_r        = (_notch_w*_notch_w/4 + _notch_h*_notch_h) / (2*_notch_h);  // arc radius
+_notch_half     = _notch_w/2 + _notch_c;  // half its width at the front face
+_split_w        = max(_snap_w/2, 5);    // each front snap when split
+_split_x        = _notch_half + 1 + _split_w/2;
+_notch_fits     = (front_snap ? _split_x + _split_w/2 : _notch_half) <= (box_w - 30)/2 - 1;
+_notch_ok       = _notch_h >= 1.2 && _notch_fits;
+_pry            = pry_notch && _notch_ok;
+// The front snaps actually built: centres and each one's width
+_snap_xs        = _pry ? [-_split_x, _split_x] : [0];
+_snap_wd        = _pry ? _split_w : _snap_w;
 
 // What the web viewer should grey out or warn about, as [param, "off" | "note", why].
 // Reported with the base, so everything read here must stay out of mv_ignore_base.
@@ -290,27 +302,94 @@ function _custom_snap_hint(used, what) =
     snap_fit != "custom" ? "Only used when snap_fit is custom" :
     !used ? str("The ", what, " is not in use") : "";
 _hints = [
-    if (lid_lock == "squeeze latches" && !_latch_ok)
-        ["lid_lock", "note", "The box is too short front to back for squeeze latches, so it uses the snaps"],
-    if (_latches) ["front_snap", "off", "Replaced by the squeeze latches"],
-    if (_latches) ["side_snaps", "off", "Replaced by the squeeze latches"],
-    if (!_front_snap && !_side_snaps) ["snap_fit", "off", "No snaps are in use"],
-    if (!(_front_snap && _flex_ok))
-        ["front_flex", "off",
-         _latches     ? "Squeeze latches replace the front snap" :
-         !front_snap  ? "Needs the front snap" :
-                        "The box is too narrow for the front springs"],
-    if (!_latches) ["latch_length", "off", "Only used by squeeze latches"],
-    if (!_latches) ["latch_engage", "off", "Only used by squeeze latches"],
-    if (!_front_flex) ["front_flex_length", "off", "Only used by front flex"],
-    if (!lift_tab) ["lift_tab_width", "off", "Only used by the lift tab"],
-    if (!lift_tab) ["lift_tab_reach", "off", "Only used by the lift tab"],
+    if (!finger_scoops) ["scoop_radius", "off", "Only used by finger scoops"],
+    if (!front_snap && !side_snaps) ["snap_fit", "off", "No snaps are in use"],
+    if (pry_notch && !_notch_ok)
+        ["pry_notch", "note", _notch_h < 1.2
+            ? "The label is too tall for this box height to leave room for the notch, even moved down, so it has none"
+            : front_snap ? "The box is too narrow for the notch between two front snaps, so it has none"
+                         : "The box is too narrow for the notch, so it has none"],
     for (n = ["snap_width", "snap_depth", "snap_catch_depth", "snap_height"])
-        let (why = _custom_snap_hint(_front_snap, "front snap")) if (why != "") [n, "off", why],
+        let (why = _custom_snap_hint(front_snap, "front snap")) if (why != "") [n, "off", why],
     for (n = ["side_snap_length", "side_snap_depth", "side_snap_catch_depth"])
-        let (why = _custom_snap_hint(_side_snaps, "side snap")) if (why != "") [n, "off", why],
+        let (why = _custom_snap_hint(side_snaps, "side snap")) if (why != "") [n, "off", why],
 ];
 if (_mv_build("base")) echo(str("MV_HINTS=", _hints));
+
+// --- Gridfinity bin params
+// A standard Gridfinity bin (42 mm grid, 4.75 mm feet that drop into a baseplate)
+// with a pocket per box. A closed box stands on its hinge side: its back face,
+// 0.5 mm behind the hinge axis, rests on the pocket floor, and the feet and hinge
+// knuckles that stick out of it sit in recesses below the floor. Pocket and
+// recess sizes are in the pocket's own frame: u across the box's width, v up its
+// closed height (base side at -v), both centred.
+_gf_w        = gridfinity_x * 42 - 0.5;   // outer size: half a millimetre under the grid
+_gf_d        = gridfinity_y * 42 - 0.5;
+_gf_r        = 3.75;                      // outer corner radius
+_gf_floor    = gridfinity_floor;          // pocket floor, above the 4.75 mm feet
+_gf_h        = _gf_floor + gridfinity_depth;
+_gf_c        = 2;                         // outer top chamfer, and the lead-in flare round each pocket
+_gf_clear    = 0.5;                       // gap round the box
+// The side grips stand 0.5 mm proud from box_d - 23.5 mm above the back face;
+// give them room if they reach down into the pocket.
+_gf_side     = _gf_clear + (gridfinity_depth > box_d - 23.5 ? 0.5 : 0);
+_gf_pw       = box_w + 2*_gf_side;        // pocket, across the box
+_gf_ph       = box_h + 2*_gf_clear;       // pocket, across its height
+_gf_pk       = 2 + 2*_gf_clear*tan(22.5); // corner chamfer: the box's 2 mm one, offset
+_gf_rc       = 0.3;                       // gap round the feet and knuckles
+_gf_recess   = max(2.5, 0.5 + hinge_dia/2) + _gf_rc;  // feet stick out 2.5 mm, knuckles 0.5 + radius
+// [u0, u1, v0, v1] for each recess
+_gf_foot_u   = [box_w/2 - 21.82843, box_w/2 - 10.82843];  // base feet, lid feet (centres)
+_gf_hv       = max(2.63, hinge_dia/2) + _gf_rc;           // knuckle fins reach 2.63 mm off the axis
+_gf_recesses = [
+    [-hinge_axis_len/2 - _gf_rc, hinge_axis_len/2 + _gf_rc, -_gf_hv, _gf_hv],
+    if (footy) for (sx = [-1, 1]) each [
+        [sx*_gf_foot_u[0] - 5 - _gf_rc, sx*_gf_foot_u[0] + 5 + _gf_rc, -_gf_ph/2, -box_h/2 + 3.8 + _gf_rc],
+        [sx*_gf_foot_u[1] - 5 - _gf_rc, sx*_gf_foot_u[1] + 5 + _gf_rc, box_h/2 - 3.8 - _gf_rc, _gf_ph/2],
+    ],
+];
+// As many pockets as fit with walls of at least 5 mm, between them and at the
+// edges; turned a quarter turn (box width front to back) if that fits more. The
+// room left over is shared out evenly, so every wall along a row is the same.
+_gf_gap      = 5;
+_gf_margin   = 5;
+function _gf_fit(len, room) = max(0, floor((room - 2*_gf_margin + _gf_gap) / (len + _gf_gap)));
+_gf_n0       = [_gf_fit(_gf_pw, _gf_w), _gf_fit(_gf_ph, _gf_d)];
+_gf_n1       = [_gf_fit(_gf_ph, _gf_w), _gf_fit(_gf_pw, _gf_d)];
+_gf_turn     = _gf_n1[0] * _gf_n1[1] > _gf_n0[0] * _gf_n0[1];
+_gf_n        = _gf_turn ? _gf_n1 : _gf_n0;
+_gf_size     = _gf_turn ? [_gf_ph, _gf_pw] : [_gf_pw, _gf_ph];   // a pocket's footprint in x, y
+// pocket + wall, with n pockets and n + 1 equal walls across the bin
+_gf_step     = [for (k = [0, 1]) let (room = k == 0 ? _gf_w : _gf_d)
+                   _gf_size[k] + (room - _gf_n[k] * _gf_size[k]) / (_gf_n[k] + 1)];
+_gf_pockets  = [for (j = [0:1:_gf_n[1] - 1], i = [0:1:_gf_n[0] - 1])
+                   [(i - (_gf_n[0] - 1)/2) * _gf_step[0], (j - (_gf_n[1] - 1)/2) * _gf_step[1]]];
+// Where the bin goes in the print layout: right of the box
+_gf_at       = box_w/2 + 0.5 + 10 + _gf_w/2;
+// Magnet holes: 0.5 mm wider and 0.4 mm deeper than the magnet, with a 0.5 mm
+// chamfer at the mouth. Press fit adds eight ribs, 0.8 mm wide, reaching in to
+// 0.1 mm under the magnet's diameter, which crush as it's pushed in.
+_gf_mag_r    = gridfinity_magnet_d/2 + 0.25;
+_gf_mag_h    = gridfinity_magnet_h + 0.4;
+_gf_mag_ribs = gridfinity_magnet_fit == "press fit";
+_gf_rib_r    = gridfinity_magnet_d/2 - 0.05;  // ribs' inner face, from the hole's centre
+
+_gf_hints = [
+    if (!gridfinity) for (n = ["gridfinity_x", "gridfinity_y", "gridfinity_depth", "gridfinity_floor", "gridfinity_magnets",
+                               "gridfinity_magnet_d", "gridfinity_magnet_h", "gridfinity_magnet_fit"])
+        [n, "off", "Only used by the Gridfinity bin"],
+    if (gridfinity && !gridfinity_magnets) for (n = ["gridfinity_magnet_d", "gridfinity_magnet_h", "gridfinity_magnet_fit"])
+        [n, "off", "Only used with magnet holes"],
+    if (gridfinity && _gf_floor - _gf_recess < 4.75 + 0.6)
+        ["gridfinity_floor", "note", str("The recesses for the hinge", footy ? " and feet" : "", " go ",
+            _gf_recess, " mm below the floor, so under ", 4.75 + 0.6 + _gf_recess,
+            " mm they leave a thin or open base where they cross the gaps between the grid feet")],
+    if (gridfinity && len(_gf_pockets) == 0)
+        ["gridfinity", "note", str("No box fits a ", gridfinity_x, " x ", gridfinity_y,
+            " bin, so it has no pockets; it needs about ", _gf_pw + 2*_gf_margin, " x ",
+            _gf_ph + 2*_gf_margin, " mm")],
+];
+if (_mv_build("gridfinity")) echo(str("MV_HINTS=", _gf_hints));
 
 // --- Divider params
 div_t           = 1;
@@ -326,6 +405,21 @@ box_internal_w  = box_w - 4;
 box_internal_d  = box_d - 7.5;
 
 lid_internal_h  = 3.30;
+
+// Finger scoops: [x0, x1, y, radius] in the base's divider grid for every cell
+// whose front edge is a wall (the shell, or a divider to another compartment).
+// Filled compartments get none, and the radius shrinks to fit the cell.
+_fill_ids = [for (f = fills) _region_at(f[0], f[1])];
+_scoops = !finger_scoops ? [] : [
+    for (r = [0:1:_R - 1], c = [0:1:_C - 1])
+        let (id    = _cells[r * _C + c],
+             front = r == _R - 1 || _cells[(r + 1) * _C + c] != id,
+             yf    = _ys[r + 1] * box_internal_d - (r == _R - 1 ? 0 : div_t/2),
+             yb    = _ys[r] * box_internal_d + (r == 0 ? 0 : div_t/2),
+             rad   = min(scoop_radius, (yf - yb)/2, box_internal_h))
+        if (front && len([for (i = _fill_ids) if (i == id) 1]) == 0 && rad >= 1)
+            [_xs[c] * box_internal_w, _xs[c + 1] * box_internal_w, yf, rad]
+];
 lid_internal_d  = box_d - 8.5;
 
 // ----------------------
@@ -385,6 +479,12 @@ module mw_assembly_view() {
             generate_layout_dividers(box_internal_w, box_internal_d, box_internal_h + 0.2,
                                      _xs, _ys, _cells, bottom_chamfer, chamfer_size);
 
+        // --- finger scoops (base)
+        if (len(_scoops) > 0)
+        color(divider_color)
+        translate(_base_grid_origin)
+            generate_scoops();
+
         // --- compartment dividers (lid)
         if (lid_dividers)
         color(divider_color)
@@ -392,6 +492,12 @@ module mw_assembly_view() {
             generate_layout_dividers(box_internal_w, lid_internal_d, lid_internal_h + 0.1,
                                      _xs, _lid_ys, _lid_cells, false, chamfer_size);
     }
+
+    // --- Gridfinity bin, beside the box
+    if (_mv_build("gridfinity") && gridfinity)
+    color("#FFFFFF")
+    translate([mv_solo ? 0 : _gf_at, 0, 0])
+        generate_gridfinity();
 
     // --- shadowbox fills with tool pockets (base only)
     if (_mv_build("inserts") && len(fills) > 0)
@@ -421,24 +527,23 @@ if (mv_part == "dims") echo(str("MV_DIMS=", [
     ["lid_w", lid_w], ["lid_h", lid_h], ["lid_outer_d", lid_outer_d], ["lid_side_t", lid_side_t], ["lid_fb_t", lid_fb_t],
     ["lid_lip_bot_h", lid_lip_bot_h], ["lid_lip_top_h", lid_lip_top_h],
     ["hinge_clear", hinge_clear], ["hinge_dia", hinge_dia], ["hinge_axis_len", hinge_axis_len], ["hinge_comp_len", hinge_comp_len],
-    ["front_snap", _front_snap], ["side_snaps", _side_snaps],
-    ["snap_w", _snap_w], ["snap_depth", _snap_depth], ["snap_catch", _snap_catch], ["snap_h", _snap_h],
+    ["front_snap", front_snap], ["side_snaps", side_snaps],
+    ["snap_w", _snap_wd], ["snap_xs", _snap_xs], ["snap_depth", _snap_depth], ["snap_catch", _snap_catch], ["snap_h", _snap_h],
     ["side_snap_l", _side_snap_l], ["side_snap_d", _side_snap_d], ["side_snap_c", _side_snap_c],
     ["side_snap_zh", _side_snap_zh], ["side_snap_z", _side_snap_z],
-    ["grips", _grips_clear(base_outer_d/2 - 16)],
-    ["latches", _latches], ["latch_engage", latch_engage], ["slot", _slot],
-    ["latch_y0", _latch_y0], ["latch_y1", _latch_y1], ["latch_hook_l", _latch_hook_l],
-    ["latch_zb", _latch_zb], ["latch_hh", _latch_hh], ["latch_out", _latch_out], ["latch_gap", _latch_gap],
-    ["latch_z", _latch_z], ["house_y0", _house_y0], ["house_y1", _house_y1],
-    ["front_flex", _front_flex], ["flex_half", _flex_half],
-    ["lift_tab", lift_tab], ["lift_tab_width", lift_tab_width], ["lift_tab_reach", lift_tab_reach],
+    ["pry", _pry], ["notch_h", _notch_h], ["notch_c", _notch_c], ["notch_b", _notch_b], ["notch_r", _notch_r],
     ["div_t", div_t], ["shell_bottom_t", shell_bottom_t],
     ["box_internal_w", box_internal_w], ["box_internal_d", box_internal_d], ["box_internal_h", box_internal_h],
     ["lid_internal_d", lid_internal_d], ["lid_internal_h", lid_internal_h],
     ["xs", _xs], ["ys", _ys], ["cells", _cells], ["lid_ys", _lid_ys], ["lid_cells", _lid_cells],
     ["lid_dividers", lid_dividers], ["bottom_chamfer", bottom_chamfer], ["chamfer_size", chamfer_size],
     ["divider_color", divider_color], ["insert_color", insert_color],
-    ["fills", fills], ["tools", len(tools)],
+    ["fills", fills], ["tools", len(tools)], ["scoops", _scoops],
+    ["gridfinity", gridfinity], ["gf_x", gridfinity_x], ["gf_y", gridfinity_y], ["gf_w", _gf_w], ["gf_d", _gf_d],
+    ["gf_r", _gf_r], ["gf_floor", _gf_floor], ["gf_h", _gf_h], ["gf_c", _gf_c], ["gf_pw", _gf_pw], ["gf_ph", _gf_ph],
+    ["gf_pk", _gf_pk], ["gf_recess", _gf_recess], ["gf_recesses", _gf_recesses], ["gf_turn", _gf_turn],
+    ["gf_pockets", _gf_pockets], ["gf_magnets", gridfinity_magnets], ["gf_at", _gf_at],
+    ["gf_mag_r", _gf_mag_r], ["gf_mag_h", _gf_mag_h], ["gf_mag_ribs", _gf_mag_ribs], ["gf_rib_r", _gf_rib_r],
 ]));
 
 
@@ -447,15 +552,12 @@ if (mv_part == "dims") echo(str("MV_DIMS=", [
 // ----------------------
 module generate_base(base_w, base_d, base_h, base_t) {
     difference() {
-        union() {
-            generate_base_shell(base_w, base_d, base_h, base_lip_top_h, base_lip_bot_h, base_t);
-            if (_latches) _both_sides() _latch_housing();
-        }
+        generate_base_shell(base_w, base_d, base_h, base_lip_top_h, base_lip_bot_h, base_t);
 
         // interior latch
-        if (_front_snap)
-        translate([0, base_d/2-base_t, box_h-3.5])
-            _prismoid([_snap_w, _snap_h-0.2], [_snap_w, 0.6], _snap_catch, orient="back");
+        if (front_snap) for (x = _snap_xs)
+        translate([x, base_d/2-base_t, box_h-3.5])
+            _prismoid([_snap_wd, _snap_h-0.2], [_snap_wd, 0.6], _snap_catch, orient="back");
 
         // label pocket
         translate([0, base_d/2-1/2, label_h_loc])
@@ -469,18 +571,15 @@ module generate_base(base_w, base_d, base_h, base_t) {
         translate([-base_w/2, -base_d/2-.5, box_h/2-.1])
             generate_hinge_components(true, true);
 
-        if (_latches) _both_sides() _latch_cuts();
-        if (_front_flex) _flex_cuts(base_d);
+        if (_pry) _pry_notch(base_d);
     }
 
     // hinge components
     translate([-base_w/2, -base_d/2-.5, box_h/2])
         generate_hinge_components(true, false);
 
-    if (_latches) _both_sides() { _latch_hook(); _latch_ribs(); }
-
     // side snap ridges on the outside of the lip
-    if (_side_snaps)
+    if (side_snaps)
     for (sx = [-1, 1])
         translate([sx*(base_w/2 - 1.2), 0.5, _side_snap_z])
             _prismoid([_side_snap_zh, _side_snap_l], [0.6, _side_snap_l - 1], 0.3 + _side_snap_d,
@@ -489,10 +588,7 @@ module generate_base(base_w, base_d, base_h, base_t) {
 
 module generate_lid(lid_w, lid_outer_d, lid_h, lid_side_t, lid_fb_t) {
     difference() {
-        union() {
-            generate_lid_shell(lid_w, lid_outer_d, lid_h, lid_lip_bot_h, lid_lip_top_h, lid_side_t, lid_fb_t);
-            if (_latches) _both_sides() _latch_lid_housing();
-        }
+        generate_lid_shell(lid_w, lid_outer_d, lid_h, lid_lip_bot_h, lid_lip_top_h, lid_side_t, lid_fb_t);
 
         if(footy){
         // footy pockets (offset minkowski)
@@ -510,14 +606,11 @@ module generate_lid(lid_w, lid_outer_d, lid_h, lid_side_t, lid_fb_t) {
 
         // side snap grooves inside the rim (the lid flips over the hinge, so they
         // line up with the base's ridges at the same y)
-        if (_side_snaps)
+        if (side_snaps)
         for (sx = [-1, 1])
             translate([sx*(lid_w/2 - 1), 0.5, 6.5])
                 _prismoid([_side_snap_zh + 0.2, _side_snap_l + 1], [0.8, _side_snap_l], 0.1 + _side_snap_c,
                           orient=(sx == 1 ? "right" : "left"));
-
-        // windows in the rim for the squeeze latches' hooks
-        if (_latches) _both_sides() _latch_lid_cuts();
     }
 
 
@@ -525,15 +618,13 @@ module generate_lid(lid_w, lid_outer_d, lid_h, lid_side_t, lid_fb_t) {
     translate([-base_w/2, -base_d/2+.75, box_h/2])
         generate_hinge_components(false, false);
 
-    if (lift_tab) _lift_tab(lid_outer_d);
-
     // external latch
-    if (_front_snap)
+    if (front_snap) for (x = _snap_xs) translate([x, 0, 0])
     difference() {
         translate([0, lid_outer_d/2-2.1, 3.5])
-            _prismoid([_snap_w+0.4, _snap_h], [_snap_w-1.2, 0.6], _snap_depth, orient="back");
+            _prismoid([_snap_wd+0.4, _snap_h], [_snap_wd-1.2, 0.6], _snap_depth, orient="back");
         for (sx = [-1, 1])
-            translate([sx*(_snap_w/2+0.5), lid_outer_d/2-2.1+.5, 3.5-(_snap_h+0.1)/2])
+            translate([sx*(_snap_wd/2+0.5), lid_outer_d/2-2.1+.5, 3.5-(_snap_h+0.1)/2])
                 translate([-0.5,-0.5,0]) cube([1,1,_snap_h+0.1]);
     }
 }
@@ -568,10 +659,8 @@ module generate_base_shell(l,w,h,inner_h,outer_h,t) {
 
     // grips (two per side) — base uses 0.95 gap
     y_grip = w/2 - 16;
-    if (_grips_clear(y_grip)) {
-        _grip_pair_on_side(+1, l, y_grip, 2.95, 0.95);
-        _grip_pair_on_side(-1, l, y_grip, 2.95, 0.95);
-    }
+    _grip_pair_on_side(+1, l, y_grip, 2.95, 0.95);
+    _grip_pair_on_side(-1, l, y_grip, 2.95, 0.95);
 
     if(footy){
     // back feet (base uses 16.82843 offset)
@@ -632,10 +721,8 @@ module generate_lid_shell(l,w,h,inner_h,outer_h,side_t, fb_t) {
 
     // grips (two per side) — lid uses 1.0 gap
     y_grip = w/2 - 16;
-    if (_grips_clear(y_grip)) {
-        _grip_pair_on_side(+1, l, y_grip, 2.95, 1.0);
-        _grip_pair_on_side(-1, l, y_grip, 2.95, 1.0);
-    }
+    _grip_pair_on_side(+1, l, y_grip, 2.95, 1.0);
+    _grip_pair_on_side(-1, l, y_grip, 2.95, 1.0);
 
     if(footy){
     // back feet (lid uses 5.82843 offset)
@@ -645,138 +732,98 @@ module generate_lid_shell(l,w,h,inner_h,outer_h,side_t, fb_t) {
 }
 
 // ----------------------
-// Easy open (experimental)
+// Gridfinity bin
 // ----------------------
-// The latch modules draw the +x side; _both_sides() mirrors them onto -x.
-module _both_sides() {
-    children();
-    mirror([1, 0, 0]) children();
+module generate_gridfinity() {
+    difference() {
+        union() {
+            for (i = [0:gridfinity_x - 1], j = [0:gridfinity_y - 1])
+                translate([(i - (gridfinity_x - 1)/2) * 42, (j - (gridfinity_y - 1)/2) * 42, 0])
+                    _gf_foot();
+            // body, with a 45° chamfer round the top
+            hull() {
+                translate([0, 0, 4.75]) linear_extrude(_gf_h - _gf_c - 4.75) _gf_rounded(_gf_w, _gf_d, _gf_r);
+                translate([0, 0, _gf_h - 0.001]) linear_extrude(0.001)
+                    _gf_rounded(_gf_w - 2*_gf_c, _gf_d - 2*_gf_c, _gf_r - _gf_c);
+            }
+        }
+        for (p = _gf_pockets) translate([p[0], p[1], 0]) rotate(_gf_turn ? 90 : 0) _gf_pocket();
+        if (gridfinity_magnets)
+            for (i = [0:gridfinity_x - 1], j = [0:gridfinity_y - 1], dx = [-13, 13], dy = [-13, 13])
+                translate([(i - (gridfinity_x - 1)/2) * 42 + dx, (j - (gridfinity_y - 1)/2) * 42 + dy, 0])
+                    _gf_magnet_hole();
+    }
 }
 
-// Side grips would run into a latch housing on short boxes, so they give way.
-function _grips_clear(y_grip) =
-    !_latches || y_grip + 5 < _house_y0 || y_grip - 5 > _house_y1;
-
-// Extrude an (x, z) profile along y, centred on y.
-module _along_y(y, len) {
-    translate([0, y, 0]) rotate([90, 0, 0]) linear_extrude(len, center = true) children();
+module _gf_magnet_hole() {
+    difference() {
+        translate([0, 0, -1]) cylinder(r = _gf_mag_r, h = 1 + _gf_mag_h);
+        if (_gf_mag_ribs) for (k = [0:7]) rotate(k * 45)
+            translate([_gf_rib_r, -0.4, -1]) cube([_gf_mag_r + 0.2 - _gf_rib_r, 0.8, 1 + _gf_mag_h + 0.1]);
+    }
+    // chamfer at the mouth
+    translate([0, 0, -0.5]) cylinder(r1 = _gf_mag_r + 1, r2 = _gf_mag_r, h = 1);
 }
 
-// Extrude a (y, z) profile along x, centred on x = 0.
-module _along_x(len) {
-    rotate([90, 0, 90]) linear_extrude(len, center = true) children();
+// Rounded rectangle, centred
+module _gf_rounded(w, d, r) {
+    offset(r = r) square([w - 2*r, d - 2*r], center = true);
 }
 
-// Squeeze latch. A housing on the outside of the side wall carries a leaf spring:
-// a strip cut free by a slot underneath and a slot at its free end, so it bends
-// sideways along its length rather than from the floor, which keeps the strain on
-// its root low. The root is towards the hinge; the free end, with the ribs to press,
-// is towards the front. Above the base's rim the spring carries the hook, which
-// clicks into a window in a matching housing on the lid. Behind the spring the
-// wall is recessed just enough for the hook to let go, and the 1 mm or so of wall
-// left behind it keeps the compartment closed. Nothing changes on the inside.
-// The rounded root end keeps cracks from starting, and the slot under the spring
-// runs at 45° so its underside prints without support.
-_latch_s = _slot * sqrt(2);   // a 45° slot's height
-
-module _latch_housing() {
-    xo = base_w/2; P = _latch_out;
-    // below the rim: the spring plus a fixed foot under it, with a 45° underside
-    _along_y((_house_y0 + _house_y1)/2, _house_y1 - _house_y0)
-        polygon([[xo - 0.01, _latch_z - 1.5], [xo + P, _latch_z - 1.5 + P],
-                 [xo + P, base_lip_bot_h], [xo - 0.01, base_lip_bot_h]]);
-    // above the rim: the spring's head, which carries the hook
-    _along_y((_latch_y0 + _latch_y1)/2, _latch_y1 - _latch_y0)
-        polygon([[xo, base_lip_bot_h - 0.01], [xo + 0.9, base_lip_bot_h - 0.01],
-                 [xo + 0.9, base_lip_top_h], [xo, base_lip_top_h]]);
+// One grid square's foot, the standard Gridfinity profile: 0.8 mm at 45°, 1.8 mm
+// straight, 2.15 mm at 45° up to the 41.5 mm square at z = 4.75. The profile
+// steps in at the straight part, so it's two hulls, not one.
+module _gf_foot() {
+    hull() {
+        linear_extrude(0.001) _gf_rounded(35.6, 35.6, 0.8);
+        translate([0, 0, 0.8]) linear_extrude(1.8) _gf_rounded(37.2, 37.2, 1.6);
+    }
+    hull() {
+        translate([0, 0, 2.6 - 0.001]) linear_extrude(0.001) _gf_rounded(37.2, 37.2, 1.6);
+        translate([0, 0, 4.75 - 0.001]) linear_extrude(0.001) _gf_rounded(41.5, 41.5, 3.75);
+    }
 }
 
-module _latch_cuts() {
-    xo = base_w/2; z = _latch_z;
-    // the recess the spring is pushed into
-    translate([xo - _latch_gap, _latch_y0, z]) cube([_latch_gap, _latch_y1 + _slot - _latch_y0, box_h]);
-    // under the spring, rising outwards so it only opens up when pressed in
-    _along_y((_latch_y0 + _latch_y1 + _slot)/2, _latch_y1 + _slot - _latch_y0)
-        polygon([[xo - 0.5, z - 0.5], [xo + 3, z + 3], [xo + 3, z + 3 + _latch_s], [xo - 0.5, z - 0.5 + _latch_s]]);
-    // the free end
-    translate([xo - _latch_gap, _latch_y1, z - 1]) cube([_latch_gap + 3, _slot, box_h]);
-    // rounded root
-    translate([xo + 0.75, _latch_y0, z + 0.75 + _latch_s/2]) rotate([0, 45, 0])
-        cylinder(d = 2*_slot, h = 4.8, center = true, $fn = 16);
+// The box's outline seen from behind, with its 2 mm corner chamfers, plus clearance
+module _gf_pocket_outline(grow = 0) {
+    offset(delta = grow) polygon([
+        [-_gf_pw/2 + _gf_pk, -_gf_ph/2], [_gf_pw/2 - _gf_pk, -_gf_ph/2], [_gf_pw/2, -_gf_ph/2 + _gf_pk],
+        [_gf_pw/2, _gf_ph/2 - _gf_pk], [_gf_pw/2 - _gf_pk, _gf_ph/2], [-_gf_pw/2 + _gf_pk, _gf_ph/2],
+        [-_gf_pw/2, _gf_ph/2 - _gf_pk], [-_gf_pw/2, -_gf_ph/2 + _gf_pk]]);
 }
 
-// The hook sits on the head's outer face. Only the part of its underside that
-// meets the lid's bar is nearly flat (10°, rising to the tip): flat enough to hold
-// against a tug, steep enough that a hard pull cams it in rather than snapping the
-// bar. The rest, inside the 0.2 mm gap, is 45°, so the ledge printed over air is
-// only about 0.6 mm.
-module _latch_hook() {
-    x0 = base_w/2 + 0.9;
-    p  = 0.2 + latch_engage;
-    zf = _latch_zb - (p - 0.2) * tan(10);   // where the flat part starts, above the bar's inner edge
-    _along_y(_latch_y1 - 1 - _latch_hook_l/2, _latch_hook_l)
-        polygon([[x0 - 0.3, zf - 0.5], [x0 + 0.2, zf], [x0 + p, _latch_zb], [x0 + p, _latch_zb + 0.3],
-                 [x0 - 0.3, _latch_zb + _latch_hh]]);
+// One pocket: straight down to the floor, flaring out 45° over the top _gf_c, and
+// the recesses for the feet and knuckles below the floor
+module _gf_pocket() {
+    translate([0, 0, _gf_floor]) linear_extrude(_gf_h - _gf_c - _gf_floor + 0.5) _gf_pocket_outline();
+    hull() {
+        translate([0, 0, _gf_h - _gf_c]) linear_extrude(0.001) _gf_pocket_outline();
+        translate([0, 0, _gf_h + 1 - 0.001]) linear_extrude(0.001) _gf_pocket_outline(_gf_c + 1);
+    }
+    for (r = _gf_recesses)
+        translate([r[0], r[2], _gf_floor - _gf_recess]) cube([r[1] - r[0], r[3] - r[2], _gf_recess + 0.5]);
 }
 
-// Upright ribs on the free end that show where to press.
-module _latch_ribs() {
-    z0 = _latch_z + _latch_out + _latch_s + 0.4;   // above the slot on the outside
-    z1 = base_lip_bot_h - 0.4;
-    if (z1 - z0 > 1.5)
-        for (k = [0:2])
-            translate([base_w/2 + _latch_out, _latch_y1 - 1.5 - 2*k, (z0 + z1)/2])
-                _prismoid([z1 - z0, 1], [z1 - z0 - 1, 0.4], 0.5, orient = "right");  // 45° ends
-}
+// ----------------------
+// Easy open
+// ----------------------
+// None of this touches the snaps, so the lid holds exactly as before.
 
-// Lid side (lid frame, where a lid point at height z closes onto box_h - z): the
-// housing continues up the lid as a skirt 0.2 mm outside the head, on a 45° shelf.
-module _latch_lid_housing() {
-    xo = lid_w/2; P = _latch_out;
-    _along_y((_house_y0 + _house_y1)/2, _house_y1 - _house_y0)
-        polygon([[xo - 0.01, lid_h - 3 - P], [xo + P, lid_h - 3],
-                 [xo + P, lid_h], [xo + 1.1, lid_h], [xo + 1.1, lid_h - 3],
-                 [xo - 0.01, lid_h - 3]]);
-}
-
-module _latch_lid_cuts() {
-    xo = lid_w/2;
-    // the lid's own rim gives way to the head where it is pressed in
-    translate([xo - 1, _latch_y0 - 0.5, lid_h - 3])
-        cube([1.01, _latch_y1 + _slot + 1 - _latch_y0, 4]);
-    // the window for the hook, through the skirt
-    l  = _latch_hook_l + 0.6;
-    z0 = box_h - _latch_zb - _latch_hh - 0.2;
-    z1 = box_h - _latch_zb + 0.25;   // clear of the hook's underside where it meets the bar
-    translate([xo + 0.9, _latch_y1 - 1 - _latch_hook_l/2 - l/2, z0]) cube([_latch_out, l, z1 - z0]);
-}
-
-// Front flex (base). The front snap's catch sits in the front tab above the
-// compartments' top edge, so only that part is cut free: a slot underneath at
-// the top edge, and a split in the middle, leave the catch on the free ends of
-// two springs rooted out towards the corners. The slot rises inwards (the lid
-// only pushes the springs outwards) and opens on the inside just above the top
-// edge, so it doesn't open into the compartments.
-module _flex_cuts(d) {
-    yo = d/2; yi = d/2 - 2;
-    z  = base_lip_top_h + 0.45 - 2;  // slot bottom at the outside; 2 mm higher on the inside
-    _along_x(2*_flex_half)
-        polygon([[yo + 1, z - 1], [yi - 1, z + 3], [yi - 1, z + 3 + _latch_s], [yo + 1, z - 1 + _latch_s]]);
-    // the split, only above the slot
-    translate([-_slot/2, 0, 0]) rotate([90, 0, 90]) linear_extrude(_slot)
-        polygon([[yo + 1, z - 1], [yi - 1, z + 3], [yi - 1, box_h + 1], [yo + 1, box_h + 1]]);
-    // rounded roots
-    for (sx = [-1, 1])
-        translate([sx*_flex_half, yo - 1, z + 1 + _latch_s/2]) rotate([45, 0, 0])
-            cylinder(d = 2*_slot, h = 4.2, center = true, $fn = 16);
-}
-
-// Lift tab: a flat ledge on the lid's front edge. It prints on the bed and, when
-// closed, overhangs the front at the very top for a thumb to push up.
-module _lift_tab(d) {
-    tw = min(lift_tab_width, box_w - 20);
-    translate([0, d/2 - 3, 0]) linear_extrude(1.6)
-        offset(r = 1.5) offset(delta = -1.5) translate([-tw/2, 0]) square([tw, 3 + lift_tab_reach]);
+// Pry notch (base): an arc cut through the middle of the top of the front tab, so the lid's
+// flat front edge shows above it for a fingertip (or a twisted coin) to push up
+// on. Towards the front the arc grows into a flare: the sides open out at 45°,
+// the bottom by _notch_b, which is a hull of the arc and a bigger one whose centre
+// is raised to suit. It faces up and out, so it prints as is.
+module _pry_notch(d) {
+    yi = d/2 - base_t - 0.5; yc = d/2 - _notch_c; L = _notch_c + 1;
+    rise = L * (1 - _notch_b / _notch_c);
+    translate([0, 0, base_h - _notch_h + _notch_r]) rotate([-90, 0, 0]) {
+        translate([0, 0, yi]) cylinder(r = _notch_r, h = yc - yi, $fn = max($fn, 128));
+        hull() {
+            translate([0, 0, yc]) cylinder(r = _notch_r, h = 0.001, $fn = max($fn, 128));
+            translate([0, -rise, yc + L - 0.001]) cylinder(r = _notch_r + L, h = 0.001, $fn = max($fn, 128));
+        }
+    }
 }
 
 // ----------------------
@@ -1219,6 +1266,28 @@ module generate_inserts() {
             _base_cavity_in_grid();
         }
         for (t = tools) _tool_cutter(t);
+    }
+}
+
+// ----------------------
+// Finger scoops
+// ----------------------
+// A quarter-round ramp in the corner between the floor and a compartment's front
+// wall, tangent to both. Its curve faces up and back, so it prints as is. Kept
+// inside the cavity, so it follows the shell's chamfered corners. The arc is a big
+// part of the scoop, so it gets 4x the usual segments (and the STEP check's
+// fine reference render gets close enough to the exact arc).
+module generate_scoops() {
+    intersection() {
+        union() for (s = _scoops) {
+            x0 = s[0]; x1 = s[1]; y = s[2]; r = s[3];
+            difference() {
+                translate([x0, y - r, 0]) cube([x1 - x0, r, 0.1 + r]);
+                translate([x0 - 1, y - r, 0.1 + r]) rotate([0, 90, 0])
+                    cylinder(r = r, h = x1 - x0 + 2, $fn = 4*$fn);
+            }
+        }
+        _base_cavity_in_grid();
     }
 }
 

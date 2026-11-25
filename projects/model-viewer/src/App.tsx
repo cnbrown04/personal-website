@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import * as api from "./api";
-import { Panel } from "./components/Panel";
+import { type ExportScope, Panel } from "./components/Panel";
 import { PresetManager } from "./components/PresetManager";
 import { StatusBar } from "./components/StatusBar";
 import { CompartmentsSection, ViewportEditor } from "./components/ViewportEditor";
@@ -38,16 +38,25 @@ function readUrlParams(): Params {
   }
 }
 
-/** Download name that says what's in the file, e.g. `clamshell-80x80x25mm-9comp-inserts`. */
-function exportStem(schema: Schema, params: Params): string {
+/** What a download holds: the box's parts, or just the Gridfinity bin. */
+type ExportPiece = "box" | "bin";
+
+/** Download name that says what's in the file, e.g.
+ * `clamshell-80x80x25mm-9comp-inserts`, or for the bin
+ * `clamshell-80x80x25mm-gridfinity4x4-bin`. */
+function exportStem(schema: Schema, params: Params, piece: ExportPiece): string {
   const parts = [schema.file.replace(/\.scad$/i, "")];
-  const { width, depth, height, cells, fills } = params;
+  const { width, depth, height, cells, fills, gridfinity_x, gridfinity_y } = params;
   const mm = (v: unknown) => String(Math.round(Number(v) * 10) / 10);
   if ([width, depth, height].every((v) => typeof v === "number")) {
     parts.push(`${mm(width)}x${mm(depth)}x${mm(height)}mm`);
   }
-  if (Array.isArray(cells) && cells.length) parts.push(`${new Set(cells).size}comp`);
-  if (Array.isArray(fills) && fills.length) parts.push("inserts");
+  if (piece === "bin") {
+    parts.push(`gridfinity${mm(gridfinity_x)}x${mm(gridfinity_y)}`, "bin");
+  } else {
+    if (Array.isArray(cells) && cells.length) parts.push(`${new Set(cells).size}comp`);
+    if (Array.isArray(fills) && fills.length) parts.push("inserts");
+  }
   return parts.join("-").replace(/[^\w.-]+/g, "_");
 }
 
@@ -75,6 +84,7 @@ export default function App() {
     localStorage.getItem("mv.activePreset"),
   );
   const [exporting, setExporting] = useState<string | null>(null);
+  const [piece, setPiece] = useState<api.ViewPiece>("box");
   const [reloaded, setReloaded] = useState(0);
   const [frame, setFrame] = useState<LayoutFrame | null>(null);
   const [hints, setHints] = useState<ParamHints>({});
@@ -177,8 +187,11 @@ export default function App() {
   // debouncing and aborting (which would starve continuous slider drags), keep
   // at most one request in flight and, when it lands, immediately render the
   // newest parameters if they changed meanwhile.
-  const latest = useRef({ params, quality, reloaded });
-  latest.current = { params, quality, reloaded };
+  // The bin's tab only exists while the bin is on.
+  const shownPiece: api.ViewPiece = params.gridfinity === true ? piece : "box";
+  const latest = useRef({ params, quality, reloaded, piece: shownPiece });
+  latest.current = { params, quality, reloaded, piece: shownPiece };
+  const lastPiece = useRef<api.ViewPiece | null>(null);
   // While values are changing rapidly (slider drags), render with fewer facets
   // and follow up at full quality once input settles.
   const lastChange = useRef(-Infinity);
@@ -196,23 +209,25 @@ export default function App() {
     const ticker = window.setInterval(() => setElapsed(performance.now() - started), 100);
     try {
       for (;;) {
-        const { params: requested, quality: fullQuality, reloaded: r } = latest.current;
+        const { params: requested, quality: fullQuality, reloaded: r, piece: p } = latest.current;
         const rapid = inBurst.current && performance.now() - lastChange.current < SETTLE_MS;
         const q = rapid ? Math.min(DRAFT_FN, fullQuality) : fullQuality;
-        const key = JSON.stringify([requested, q, r]);
+        const key = JSON.stringify([requested, q, r, p]);
         if (key === lastRequested.current) break;
         lastRequested.current = key;
         try {
-          const result = await api.renderModel(requested, q);
+          const result = await api.renderModel(requested, q, p);
           const { data, decodeMs } = await decodeMesh(result.buffer);
           const shownAt = performance.now();
           const viewer = viewerRef.current;
           if (viewer) {
             viewer.setMesh(data);
-            if (firstRender.current) {
+            // Frame the model on the first render and whenever the tab changes.
+            if (firstRender.current || lastPiece.current !== p) {
               viewer.fit("iso");
               firstRender.current = false;
             }
+            lastPiece.current = p;
           }
           const displayMs = performance.now() - shownAt;
           const bbox = data.bbox;
@@ -257,7 +272,7 @@ export default function App() {
     queueMicrotask(() => void pump());
     window.clearTimeout(settleTimer.current);
     settleTimer.current = window.setTimeout(() => void pump(), SETTLE_MS + 20);
-  }, [params, quality, schema, reloaded, pump]);
+  }, [params, quality, schema, reloaded, shownPiece, pump]);
 
   useEffect(() => {
     viewerRef.current?.setOptions(options);
@@ -338,7 +353,8 @@ export default function App() {
     for (const t of layoutHistory.tools) if (!toolMeshes.has(t.file)) void ensureToolMesh(t.file);
   }, [layoutHistory.tools, toolMeshes, ensureToolMesh]);
   const lidDividers = typeof params.lid_dividers === "boolean" ? params.lid_dividers : undefined;
-  const editActive = hasLayout;
+  // The layout editor works on the box, so it's off on the bin's tab.
+  const editActive = hasLayout && shownPiece === "box";
 
   toolEvents.current.commit = (next, keep) => {
     if (layoutHistory.commit(next) && !keep) setSelection(null);
@@ -488,12 +504,20 @@ export default function App() {
   }, [schema]);
 
   const onExport = useCallback(
-    async (format: string) => {
-      setExporting(format);
+    async (format: string, scope: ExportScope) => {
+      // "everything" is the box and, if it's on, the bin, as separate files so
+      // each prints on its own plate.
+      const pieces: ExportPiece[] =
+        scope === "all" ? (params.gridfinity === true ? ["box", "bin"] : ["box"]) : [scope];
       try {
-        // Exports always use the finest setting the user picked, never draft.
-        const stem = schema ? exportStem(schema, params) : undefined;
-        await api.exportModel(params, Math.max(quality, 64), format, stem);
+        for (const piece of pieces) {
+          setExporting(pieces.length > 1 || scope !== "all" ? `${piece} ${format}` : format);
+          // The bin's settings change nothing else, so the box is the model with it off.
+          const p = piece === "box" ? { ...params, gridfinity: false } : params;
+          const stem = schema ? exportStem(schema, params, piece) : undefined;
+          // Exports always use the finest setting the user picked, never draft.
+          await api.exportModel(p, Math.max(quality, 64), format, stem, piece === "bin");
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -524,6 +548,7 @@ export default function App() {
           hideLayoutParams={hasLayout}
           onExport={onExport}
           exporting={exporting}
+          canExportBin={params.gridfinity === true}
           compartments={
             hasLayout && (
               <CompartmentsSection
@@ -560,7 +585,28 @@ export default function App() {
       <main className="stage">
         <div className="canvas-wrap">
           <canvas ref={canvasRef} />
-          {hasLayout && (
+          {params.gridfinity === true && (
+            <div className="view-tabs" role="tablist" aria-label="Part to show">
+              {(
+                [
+                  ["box", "Clamshell"],
+                  ["bin", "Gridfinity Bin"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={shownPiece === value}
+                  className={shownPiece === value ? "active" : undefined}
+                  onClick={() => setPiece(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          {editActive && (
             <ViewportEditor
               actionRef={actionRef}
               ready={Boolean(frame)}

@@ -48,15 +48,21 @@ function inertiaAbout(m, s, q, d) {
 
 const CASES = {
   default: {},
-  "squeeze latches, lift tab, 2x2 with fills": {
-    lid_lock: "squeeze latches",
-    lift_tab: true,
+  "pry notch with split front snap, scoops, 2x2 with fills": {
+    finger_scoops: true,
+    pry_notch: true,
     col_splits: [0.5],
     row_splits: [0.5],
     cells: [0, 1, 2, 3],
     fills: [[0.75, 0.75, 6]],
   },
-  "front flex, wide": { front_flex: true, width: 140, depth: 90, height: 40 },
+  "wide, pry notch without front snap": {
+    front_snap: false,
+    pry_notch: true,
+    width: 140,
+    depth: 90,
+    height: 40,
+  },
   "side snaps, chamfered dividers, small": {
     side_snaps: true,
     bottom_chamfer: true,
@@ -65,9 +71,34 @@ const CASES = {
     height: 17,
     snap_fit: "wide loose",
   },
-  "no feet, no lid dividers, merged cells": {
+  "gridfinity bin, default box": { gridfinity: true },
+  "gridfinity bin turned, press-fit magnets, shallow box with grips in the pockets": {
+    gridfinity: true,
+    gridfinity_x: 3,
+    gridfinity_y: 2,
+    gridfinity_depth: 20,
+    gridfinity_floor: 7.5,
+    gridfinity_magnets: true,
+    width: 70,
+    depth: 40,
+    height: 30,
+  },
+  "gridfinity bin, no feet, small, glued 5 x 3 magnets": {
+    gridfinity: true,
+    footy: false,
+    gridfinity_x: 2,
+    gridfinity_y: 1,
+    gridfinity_magnets: true,
+    gridfinity_magnet_fit: "glue",
+    gridfinity_magnet_d: 5,
+    gridfinity_magnet_h: 3,
+    width: 35,
+    height: 17,
+  },
+  "no feet, no lid dividers, merged cells, scoops": {
     footy: false,
     lid_dividers: false,
+    finger_scoops: true,
     cells: [0, 0, 1, 2, 2, 1, 3, 3, 3],
   },
 };
@@ -183,7 +214,7 @@ for (const [name, params] of Object.entries(CASES)) {
   const parts = buildClamshell(dims);
   const built = Date.now() - started;
   const rows = [];
-  for (const part of ["base", "lid", "dividers", "inserts"]) {
+  for (const part of ["base", "lid", "dividers", "inserts", "gridfinity"]) {
     const ref = await openscad(params, part, "binstl");
     const shape = parts[part];
     if (!ref.bytes || ref.bytes.length <= 84) {

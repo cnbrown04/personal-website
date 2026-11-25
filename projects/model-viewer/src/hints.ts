@@ -10,20 +10,22 @@ export interface ParamHint {
 
 export type ParamHints = Record<string, ParamHint>;
 
+/** Each part may report its own hints line; they're merged. */
 export function parseHints(log: string): ParamHints {
-  const line = log.split("\n").find((l) => l.includes("MV_HINTS="));
-  if (!line) return {};
-  const json = line.slice(line.indexOf("MV_HINTS=") + "MV_HINTS=".length).replace(/"\s*$/, "");
   const hints: ParamHints = {};
-  try {
-    for (const entry of JSON.parse(json) as unknown[]) {
-      if (!Array.isArray(entry) || entry.length < 3) continue;
-      const [name, kind, reason] = entry;
-      if (typeof name !== "string" || typeof reason !== "string") continue;
-      hints[name] = { off: kind === "off", reason };
+  for (const line of log.split("\n")) {
+    if (!line.includes("MV_HINTS=")) continue;
+    const json = line.slice(line.indexOf("MV_HINTS=") + "MV_HINTS=".length).replace(/"\s*$/, "");
+    try {
+      for (const entry of JSON.parse(json) as unknown[]) {
+        if (!Array.isArray(entry) || entry.length < 3) continue;
+        const [name, kind, reason] = entry;
+        if (typeof name !== "string" || typeof reason !== "string") continue;
+        hints[name] = { off: kind === "off", reason };
+      }
+    } catch {
+      // A malformed line just means no hints from it.
     }
-  } catch {
-    // A malformed line just means no hints.
   }
   return hints;
 }

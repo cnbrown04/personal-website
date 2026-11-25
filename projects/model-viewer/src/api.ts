@@ -172,23 +172,31 @@ async function renderPart(
   }
 }
 
+/** Which tab of the 3D view: the box's parts, or the Gridfinity bin alone. */
+export type ViewPiece = "box" | "bin";
+
 export async function renderModel(
   params: Params,
   quality: number,
+  piece: ViewPiece = "box",
   signal?: AbortSignal,
 ): Promise<RenderResult> {
   await initMesh();
   const started = performance.now();
   const plan: Plan = JSON.parse(plan_render(source, JSON.stringify(params), quality));
 
-  const hit = viewCache.get(plan.view_key);
+  const viewKey = `${plan.view_key}:${piece}`;
+  const hit = viewCache.get(viewKey);
   if (hit) return { ...hit, cached: true };
 
   const files = await uploadFiles(plan.uploads);
+  // Every part renders, whichever tab is shown: each one's log carries hints for
+  // the settings panel. Only the shown tab's parts are merged.
   const parts = await Promise.all(plan.jobs.map((job) => renderPart(job, files, signal)));
   if (signal?.aborted) throw new DOMException("render superseded", "AbortError");
 
-  const mvm = merge_parts(parts.map((p) => p.mvm));
+  const shown = parts.filter((_, i) => (plan.jobs[i].part === "gridfinity") === (piece === "bin"));
+  const mvm = merge_parts(shown.map((p) => p.mvm));
   const header = new DataView(mvm.buffer, mvm.byteOffset);
   const seen = new Set<string>();
   const log: string[] = [];
@@ -213,7 +221,7 @@ export async function renderModel(
     ),
     log: log.join("\n"),
   };
-  viewCache.set(plan.view_key, result);
+  viewCache.set(viewKey, result);
   return result;
 }
 
@@ -238,15 +246,17 @@ export function downloadBlob(blob: Blob, name: string) {
   URL.revokeObjectURL(url);
 }
 
-/** `stem` names the file; the extension comes from the format. */
+/** `stem` names the file; the extension comes from the format. With `binOnly`,
+ * the file holds just the Gridfinity bin, centred on the origin. */
 export async function exportModel(
   params: Params,
   quality: number,
   format: string,
   stem?: string,
+  binOnly = false,
 ): Promise<void> {
   if (format.toLowerCase() === "step") {
-    const bytes = await exportStep(params);
+    const bytes = await exportStep(params, binOnly);
     downloadBlob(new Blob([bytes], { type: "model/step" }), `${stem ?? "clamshell"}.step`);
     return;
   }
@@ -255,6 +265,7 @@ export async function exportModel(
 
   await initMesh();
   const args = export_args(JSON.stringify(params), quality);
+  if (binOnly) args.push("-D", 'mv_part="gridfinity"', "-D", "mv_solo=true");
   const plan: Plan = JSON.parse(plan_render(source, JSON.stringify(params), quality));
   const files = await uploadFiles(plan.uploads);
   const run = await runOpenSCAD({ source, args, files, format: spec.flag, extension: spec.ext });
@@ -296,7 +307,7 @@ function stepRunner(): Worker {
   return worker;
 }
 
-async function exportStep(params: Params): Promise<ArrayBuffer> {
+async function exportStep(params: Params, binOnly: boolean): Promise<ArrayBuffer> {
   const args = [...export_args(JSON.stringify(params), undefined), "-D", 'mv_part="dims"'];
   // Nothing is built, so OpenSCAD ends with "top level object is empty": only the log matters.
   const run = await runOpenSCAD({ source, args, files: [], format: "binstl", extension: "stl" });
@@ -309,7 +320,7 @@ async function exportStep(params: Params): Promise<ArrayBuffer> {
   const id = ++stepId;
   return new Promise((resolve, reject) => {
     stepPending.set(id, { resolve, reject });
-    stepRunner().postMessage({ id, dims } satisfies StepRequest);
+    stepRunner().postMessage({ id, dims, binOnly } satisfies StepRequest);
   });
 }
 

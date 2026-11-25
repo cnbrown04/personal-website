@@ -19,20 +19,20 @@ export function StatusBar({ stats, error, gpu }: Props) {
 
       {stats && !error && (
         <>
-          <Metric label="size" value={stats.size.map((v) => v.toFixed(1)).join(" × ") + " mm"} />
+          <Metric label="size" value={`${stats.size.map((v) => v.toFixed(1)).join(" × ")} mm`} />
           <Metric label="volume" value={`${(stats.volume / 1000).toFixed(1)} cm³`} />
-          <Metric label="area" value={`${(stats.area / 100).toFixed(1)} cm²`} />
-          <Metric label="triangles" value={stats.triangles.toLocaleString()} />
           <Metric
             label="render"
             value={stats.cached ? "cached" : `${Math.round(stats.renderMs)} ms`}
-            title={Object.entries(stats.parts)
-              .map(([name, v]) => `${name}: ${v === "cached" ? "cached" : `${v} ms`}`)
-              .join("\n")}
+            title={[
+              ...Object.entries(stats.parts).map(
+                ([name, v]) => `${name}: ${v === "cached" ? "cached" : `${v} ms`}`,
+              ),
+              `${stats.triangles.toLocaleString()} triangles, ${(stats.area / 100).toFixed(1)} cm²`,
+              `decode ${stats.decodeMs.toFixed(1)} ms, display ${stats.displayMs.toFixed(0)} ms`,
+              ...(gpu ? [`gpu: ${gpu}`] : []),
+            ].join("\n")}
           />
-          <Metric label="decode" value={`${stats.decodeMs.toFixed(1)} ms (wasm)`} />
-          <Metric label="display" value={`${stats.displayMs.toFixed(0)} ms`} />
-          {gpu && <Metric label="gpu" value={gpu} />}
         </>
       )}
 
